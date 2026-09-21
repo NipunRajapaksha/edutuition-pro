@@ -5,9 +5,34 @@
 
 ---
 
-## 🏆 Method 1: Render.com (නොමිලේ & වඩාත්ම පහසු ක්‍රමය / Recommended Free Method)
+## ⚡ Method 1: Vercel (1-Click Deployment - වේගවත්ම සහ පහසුම ක්‍රමය / Recommended)
 
-Render.com හරහා Frontend සහ Backend දෙකම එකම සේවාවක් (Single Web Service) ලෙස නොමිලේ Deploy කළ හැක.
+Vercel හරහා **React Frontend** සහ **Express Serverless API** දෙකම එකම Vercel Project එකකින් 1-Click මගින් නොමිලේ Deploy කළ හැක.
+
+### පියවර 1: GitHub ගිණුමට Code එක Push කරන්න
+1. **[GitHub.com](https://github.com)** වෙත ගොස් New Repository එකක් (`edutuition-pro`) සාදන්න.
+2. ඔබගේ Terminal / PowerShell එකේ පහත විධාන ක්‍රියාත්මක කරන්න:
+```bash
+cd d:\tution_management
+git remote add origin https://github.com/YOUR_USERNAME/edutuition-pro.git
+git push -u origin main
+```
+
+### පියවර 2: Vercel වෙත Import කර Deploy කරන්න
+1. **[https://vercel.com](https://vercel.com)** වෙත ගොස් ඔබගේ GitHub ගිණුමෙන් Login වන්න.
+2. **"Add New..."** -> **"Project"** තෝරන්න.
+3. ඔබේ `edutuition-pro` GitHub repository එක සොයා **"Import"** ඔබන්න.
+4. **Environment Variables** කොටස විවෘත කර පහත දෑ ඇතුළත් කරන්න:
+   - **Key**: `JWT_SECRET` | **Value**: `tuition_production_secret_key_2025` *(ඔබ කැමති රහස්‍ය අකුරු පෙළක්)*
+   - *(විකල්පයි / Optional)*: ඔබ සතුව MongoDB Atlas URL එකක් ඇත්නම්:
+     - **Key**: `MONGODB_URI` | **Value**: `mongodb+srv://...`
+5. **"Deploy"** බොත්තම ඔබන්න! 🚀
+
+> **සටහන (Note)**: `vercel.json` ගොනුව දැනටමත් සකස් කර ඇති බැවින්, Build Command හෝ Output Directory වෙනස් කිරීමට අවශ්‍ය නොවේ. Vercel විසින් ස්වයංක්‍රීයව Frontend එක Build කර API එක Serverless Function එකක් ලෙස Deploy කරනු ඇත!
+
+---
+
+## 🏆 Method 2: Render.com (Full-Stack Web Service)
 
 ### පියවර 1: ව්‍යාපෘතිය GitHub ගිණුමට Push කරන්න
 ඔබගේ පරිගණකයේ Terminal / PowerShell එක open කර පහත විධාන ක්‍රියාත්මක කරන්න:
