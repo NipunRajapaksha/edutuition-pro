@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { GraduationCap, Lock, Mail, ArrowRight, ShieldCheck, Sparkles, Crown } from 'lucide-react';
+import { GraduationCap, Lock, Mail, ArrowRight } from 'lucide-react';
 
 const LoginScreen = () => {
-  const { login, quickLogin } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { login } = useAuth();
+  const { colors } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
 
-  const [email, setEmail] = useState('admin@tuition.lk');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -23,16 +23,6 @@ const LoginScreen = () => {
     setLoading(true);
     setErrorMsg('');
     const res = await login(email, password);
-    setLoading(false);
-    if (!res.success) {
-      setErrorMsg(res.message);
-    }
-  };
-
-  const handleQuick = async (role) => {
-    setLoading(true);
-    setErrorMsg('');
-    const res = await quickLogin(role);
     setLoading(false);
     if (!res.success) {
       setErrorMsg(res.message);
@@ -75,98 +65,51 @@ const LoginScreen = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: '420px',
+          maxWidth: '400px',
           backgroundColor: colors.surface,
           borderRadius: '24px',
-          padding: '32px 24px',
+          padding: '36px 28px',
           boxShadow: colors.cardShadow,
           border: `1px solid ${colors.border}`
         }}
       >
         {/* Brand */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div
             style={{
-              width: '56px',
-              height: '56px',
+              width: '60px',
+              height: '60px',
               borderRadius: '18px',
               background: 'linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 12px auto',
+              margin: '0 auto 14px auto',
               boxShadow: '0 8px 20px rgba(79, 70, 229, 0.4)'
             }}
           >
-            <GraduationCap size={32} />
+            <GraduationCap size={34} />
           </div>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', color: colors.text, letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '22px', fontWeight: '800', color: colors.text, letterSpacing: '-0.02em', margin: 0 }}>
             {t('appName')}
           </h1>
-          <p style={{ fontSize: '12px', color: colors.textMuted, marginTop: '4px' }}>
+          <p style={{ fontSize: '13px', color: colors.textMuted, marginTop: '6px', margin: '6px 0 0 0' }}>
             {t('tagline')}
           </p>
         </div>
 
-        {/* Primary 1-Tap Admin Login Banner */}
-        <button
-          type="button"
-          onClick={() => handleQuick('admin')}
-          disabled={loading}
-          style={{
-            width: '100%',
-            marginBottom: '18px',
-            padding: '12px 14px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%)',
-            border: '1.5px solid rgba(79, 70, 229, 0.4)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: '#F59E0B',
-                color: '#FFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <Crown size={20} />
-            </div>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: '800', color: colors.text }}>
-                👑 Super Admin / Owner Login
-              </div>
-              <div style={{ fontSize: '11px', color: colors.textMuted }}>
-                admin@tuition.lk • Full Institute Access
-              </div>
-            </div>
-          </div>
-          <ArrowRight size={16} color={colors.primary} />
-        </button>
-
         {errorMsg && (
           <div
             style={{
-              padding: '10px 14px',
+              padding: '12px 14px',
               borderRadius: '12px',
               backgroundColor: 'rgba(239, 68, 68, 0.1)',
               border: '1px solid rgba(239, 68, 68, 0.25)',
               color: '#EF4444',
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: '600',
-              marginBottom: '16px',
+              marginBottom: '18px',
               textAlign: 'center'
             }}
           >
@@ -175,24 +118,24 @@ const LoginScreen = () => {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: colors.textMuted, marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: colors.textMuted, marginBottom: '6px' }}>
               Email Address
             </label>
             <div style={{ position: 'relative' }}>
               <Mail
                 size={16}
-                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }}
+                style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }}
               />
               <input
                 type="email"
-                placeholder="admin@tuition.lk"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '12px 14px 12px 38px',
+                  padding: '12px 14px 12px 40px',
                   borderRadius: '12px',
                   border: `1px solid ${colors.border}`,
                   backgroundColor: colors.surfaceSubtle,
@@ -205,13 +148,13 @@ const LoginScreen = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: colors.textMuted, marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: colors.textMuted, marginBottom: '6px' }}>
               Password
             </label>
             <div style={{ position: 'relative' }}>
               <Lock
                 size={16}
-                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }}
+                style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }}
               />
               <input
                 type="password"
@@ -220,7 +163,7 @@ const LoginScreen = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '12px 14px 12px 38px',
+                  padding: '12px 14px 12px 40px',
                   borderRadius: '12px',
                   border: `1px solid ${colors.border}`,
                   backgroundColor: colors.surfaceSubtle,
@@ -236,8 +179,8 @@ const LoginScreen = () => {
             type="submit"
             disabled={loading}
             style={{
-              marginTop: '4px',
-              padding: '13px',
+              marginTop: '8px',
+              padding: '14px',
               borderRadius: '12px',
               backgroundColor: colors.primary,
               color: '#FFFFFF',
@@ -252,92 +195,15 @@ const LoginScreen = () => {
               boxShadow: '0 4px 14px rgba(79, 70, 229, 0.4)'
             }}
           >
-            <span>{loading ? t('loading') : 'Sign In with Email'}</span>
+            <span>{loading ? t('loading') : 'Sign In'}</span>
             <ArrowRight size={16} />
           </button>
         </form>
-
-        {/* Quick Demo Switcher */}
-        <div style={{ marginTop: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            <Sparkles size={14} color="#F59E0B" />
-            1-Tap Role Logins (Demo Accounts)
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button
-              onClick={() => handleQuick('teacher')}
-              style={{
-                padding: '9px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                border: '1px solid rgba(79, 70, 229, 0.3)',
-                color: colors.primaryLight,
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              👨‍🏫 Teacher
-            </button>
-
-            <button
-              onClick={() => handleQuick('parent')}
-              style={{
-                padding: '9px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                color: '#10B981',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              👪 Parent Portal
-            </button>
-
-            <button
-              onClick={() => handleQuick('student')}
-              style={{
-                padding: '9px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                color: '#06B6D4',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              👨‍🎓 Student (Kasun)
-            </button>
-
-            <button
-              onClick={() => handleQuick('student2')}
-              style={{
-                padding: '9px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(236, 72, 153, 0.1)',
-                border: '1px solid rgba(236, 72, 153, 0.3)',
-                color: '#EC4899',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              👩‍🎓 Student (Dilani)
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
 };
 
 export default LoginScreen;
+
 
