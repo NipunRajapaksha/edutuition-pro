@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:vercel": "vite build",
-    "vercel-build": "vite build",
+    "build": "vite build && node -e \"const fs=require('fs'); try{fs.cpSync('dist', '../dist', {recursive:true});}catch(e){}\"",
+    "build:vercel": "vite build && node -e \"const fs=require('fs'); try{fs.cpSync('dist', '../dist', {recursive:true});}catch(e){}\"",
+    "vercel-build": "vite build && node -e \"const fs=require('fs'); try{fs.cpSync('dist', '../dist', {recursive:true});}catch(e){}\"",
     "preview": "vite preview",
     "start": "vite"
   },
