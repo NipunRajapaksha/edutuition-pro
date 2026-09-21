@@ -2,8 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const DATA_DIR = path.join(__dirname, '../data');
+const DATA_DIR = process.env.VERCEL ? '/tmp/data' : path.join(__dirname, '../data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const SEED_FILE = path.join(__dirname, '../data/db.json');
 
 // In-memory cache
 let dataCache = null;
@@ -50,6 +51,18 @@ function loadDatabase() {
       return dataCache;
     } catch (err) {
       console.error('Error reading db.json, falling back to default:', err);
+    }
+  }
+
+  // If on Vercel and DB_FILE in /tmp doesn't exist yet, seed from bundled file
+  if (process.env.VERCEL && fs.existsSync(SEED_FILE)) {
+    try {
+      const raw = fs.readFileSync(SEED_FILE, 'utf-8');
+      dataCache = JSON.parse(raw);
+      saveDatabase();
+      return dataCache;
+    } catch (err) {
+      console.error('Error reading seed file on Vercel:', err);
     }
   }
 

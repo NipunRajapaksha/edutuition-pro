@@ -63,28 +63,54 @@ if (fs.existsSync(frontendDistPath)) {
   });
 }
 
+// Database initialization helper (handles both traditional and serverless cold-starts)
+let dbReady = false;
+let dbInitPromise = null;
+
+const initDb = async () => {
+  if (dbReady) return;
+  if (!dbInitPromise) {
+    dbInitPromise = (async () => {
+      await connectDB();
+      const userCount = storage.users.find().length;
+      if (userCount === 0) {
+        console.log('⚡ Empty datastore detected. Running initial institute seed...');
+        await seedDatabase();
+      }
+      dbReady = true;
+    })();
+  }
+  return dbInitPromise;
+};
+
+// Ensure database is ready before processing API requests
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    try {
+      await initDb();
+    } catch (err) {
+      console.error('Error during database init middleware:', err);
+    }
+  }
+  next();
+});
+
 // Error handler
 app.use(errorHandler);
 
-// Start server
-const startServer = async () => {
-  await connectDB();
+// Start server (skip app.listen if imported as a module or running inside Vercel serverless environment)
+if (require.main === module && !process.env.VERCEL) {
+  const startServer = async () => {
+    await initDb();
+    app.listen(PORT, () => {
+      console.log(`====================================================`);
+      console.log(`🚀 Tuition Management API Server running on port ${PORT}`);
+      console.log(`🔗 Health: http://localhost:${PORT}/api/health`);
+      console.log(`====================================================`);
+    });
+  };
 
-  // Auto-seed if users collection is empty
-  const userCount = storage.users.find().length;
-  if (userCount === 0) {
-    console.log('⚡ Empty datastore detected. Running initial institute seed...');
-    await seedDatabase();
-  }
-
-  app.listen(PORT, () => {
-    console.log(`====================================================`);
-    console.log(`🚀 Tuition Management API Server running on port ${PORT}`);
-    console.log(`🔗 Health: http://localhost:${PORT}/api/health`);
-    console.log(`====================================================`);
-  });
-};
-
-startServer();
+  startServer();
+}
 
 module.exports = app;
