@@ -3,7 +3,7 @@
     {
       "_id": "9a877b19-c40d-44df-a2f1-b7a66fdef869",
       "createdAt": "2026-09-21T09:20:25.154Z",
-      "updatedAt": "2026-09-21T13:05:45.785Z",
+      "updatedAt": "2026-09-21T13:17:20.040Z",
       "name": "Sunil Perera (B.Sc)",
       "email": "teacher@tuition.lk",
       "password": "$2b$10$DBHvVzWeUvDZbbvqKtZziu4HgMK4Df8TFXE5TJA1tIwhcjbEcd696",
@@ -802,6 +802,6 @@
   "settings": {
     "instituteName": "Apex Higher Education (ශිල්ප කලා ඇකඩමි)",
     "phone": "+94 77 999 8888",
-    "updatedAt": "2026-09-21T13:05:45.779Z"
+    "updatedAt": "2026-09-21T13:17:20.032Z"
   }
 }

@@ -20,6 +20,38 @@ app.use((req, res, next) => {
   next();
 });
 
+// Database initialization helper (handles both traditional and serverless cold-starts)
+let dbReady = false;
+let dbInitPromise = null;
+
+const initDb = async () => {
+  if (dbReady) return;
+  if (!dbInitPromise) {
+    dbInitPromise = (async () => {
+      await connectDB();
+      const userCount = storage.users.find().length;
+      if (userCount === 0) {
+        console.log('⚡ Empty datastore detected. Running initial institute seed...');
+        await seedDatabase();
+      }
+      dbReady = true;
+    })();
+  }
+  return dbInitPromise;
+};
+
+// Ensure database is ready before processing any API requests
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    try {
+      await initDb();
+    } catch (err) {
+      console.error('Error during database init middleware:', err);
+    }
+  }
+  next();
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
@@ -63,38 +95,6 @@ if (fs.existsSync(frontendDistPath)) {
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
-
-// Database initialization helper (handles both traditional and serverless cold-starts)
-let dbReady = false;
-let dbInitPromise = null;
-
-const initDb = async () => {
-  if (dbReady) return;
-  if (!dbInitPromise) {
-    dbInitPromise = (async () => {
-      await connectDB();
-      const userCount = storage.users.find().length;
-      if (userCount === 0) {
-        console.log('⚡ Empty datastore detected. Running initial institute seed...');
-        await seedDatabase();
-      }
-      dbReady = true;
-    })();
-  }
-  return dbInitPromise;
-};
-
-// Ensure database is ready before processing API requests
-app.use(async (req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    try {
-      await initDb();
-    } catch (err) {
-      console.error('Error during database init middleware:', err);
-    }
-  }
-  next();
-});
 
 // Error handler
 app.use(errorHandler);
