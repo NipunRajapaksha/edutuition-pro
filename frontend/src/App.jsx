@@ -34,6 +34,7 @@ import AiToolsScreen from './screens/teacher/AiToolsScreen';
 import ReportsScreen from './screens/teacher/ReportsScreen';
 import InstituteSettingsScreen from './screens/teacher/InstituteSettingsScreen';
 import TeacherProfileScreen from './screens/teacher/TeacherProfileScreen';
+import UserManagementScreen from './screens/teacher/UserManagementScreen';
 
 // Student Screens
 import StudentDashboard from './screens/student/StudentDashboard';
@@ -238,16 +239,30 @@ const MainApp = () => {
           return <AiToolsScreen />;
         case 'reports':
           return <ReportsScreen />;
+        case 'userManagement':
+        case 'users':
+          return <UserManagementScreen onBack={() => setActiveTab('more')} />;
+        case 'instituteSettings':
+          return <InstituteSettingsScreen onBack={() => setActiveTab('more')} onSaveSettings={(newSettings) => setSettings(newSettings)} />;
+        case 'teacherProfile':
+          return <TeacherProfileScreen onBack={() => setActiveTab('more')} />;
         case 'more':
           return (
             <MoreMenuScreen
-              onSelectModule={(tab) => setActiveTab(tab)}
+              onSelectModule={(tab) => {
+                if (tab === 'installApp') {
+                  setShowInstallModal(true);
+                } else {
+                  setActiveTab(tab);
+                }
+              }}
               onViewMyQr={(student) => setActiveStudentIdCard(student)}
             />
           );
         default:
           return <TeacherDashboard onNavigate={(tab) => setActiveTab(tab)} onOpenQuickAction={setActiveQuickAction} onViewReceipt={handleViewReceipt} />;
       }
+
     } else if (role === 'student') {
       switch (activeTab) {
         case 'home':

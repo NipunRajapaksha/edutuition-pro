@@ -233,7 +233,19 @@ async function seedDatabase() {
   const student8 = students[7]; // Maleesha Gamage
 
   // 4. Users (Authentication Accounts)
-  // Teacher / Admin Account
+  // Super Admin Account
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  storage.users.create({
+    name: 'Institute Owner / Admin (ප්‍රධාන පරිපාලක)',
+    email: 'admin@tuition.lk',
+    password: adminPassword,
+    role: 'teacher',
+    phone: '+94 77 123 4567',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+    subjects: 'Institute Administration & Management'
+  });
+
+  // Teacher Account
   storage.users.create({
     name: 'Master Nayanajith Perera (ගුරුතුමා)',
     email: 'teacher@tuition.lk',

@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { GraduationCap, Lock, Mail, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { GraduationCap, Lock, Mail, ArrowRight, ShieldCheck, Sparkles, Crown } from 'lucide-react';
 
 const LoginScreen = () => {
   const { login, quickLogin } = useAuth();
   const { colors, isDark } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@tuition.lk');
+  const [password, setPassword] = useState('admin123');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -57,14 +57,15 @@ const LoginScreen = () => {
         <button
           onClick={toggleLanguage}
           style={{
-            padding: '6px 12px',
-            borderRadius: '10px',
+            padding: '6px 14px',
+            borderRadius: '12px',
             backgroundColor: colors.surface,
             border: `1px solid ${colors.border}`,
             color: colors.text,
             cursor: 'pointer',
             fontSize: '12px',
-            fontWeight: '600'
+            fontWeight: '700',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
           }}
         >
           {language === 'en' ? 'සිංහල' : 'English'}
@@ -74,7 +75,7 @@ const LoginScreen = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: '400px',
+          maxWidth: '420px',
           backgroundColor: colors.surface,
           borderRadius: '24px',
           padding: '32px 24px',
@@ -83,12 +84,12 @@ const LoginScreen = () => {
         }}
       >
         {/* Brand */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div
             style={{
               width: '56px',
               height: '56px',
-              borderRadius: '16px',
+              borderRadius: '18px',
               background: 'linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)',
               color: '#FFFFFF',
               display: 'flex',
@@ -107,6 +108,53 @@ const LoginScreen = () => {
             {t('tagline')}
           </p>
         </div>
+
+        {/* Primary 1-Tap Admin Login Banner */}
+        <button
+          type="button"
+          onClick={() => handleQuick('admin')}
+          disabled={loading}
+          style={{
+            width: '100%',
+            marginBottom: '18px',
+            padding: '12px 14px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%)',
+            border: '1.5px solid rgba(79, 70, 229, 0.4)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: '#F59E0B',
+                color: '#FFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <Crown size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: colors.text }}>
+                👑 Super Admin / Owner Login
+              </div>
+              <div style={{ fontSize: '11px', color: colors.textMuted }}>
+                admin@tuition.lk • Full Institute Access
+              </div>
+            </div>
+          </div>
+          <ArrowRight size={16} color={colors.primary} />
+        </button>
 
         {errorMsg && (
           <div
@@ -139,7 +187,7 @@ const LoginScreen = () => {
               />
               <input
                 type="email"
-                placeholder="teacher@tuition.lk"
+                placeholder="admin@tuition.lk"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={{
@@ -188,7 +236,7 @@ const LoginScreen = () => {
             type="submit"
             disabled={loading}
             style={{
-              marginTop: '8px',
+              marginTop: '4px',
               padding: '13px',
               borderRadius: '12px',
               backgroundColor: colors.primary,
@@ -204,16 +252,16 @@ const LoginScreen = () => {
               boxShadow: '0 4px 14px rgba(79, 70, 229, 0.4)'
             }}
           >
-            <span>{loading ? t('loading') : 'Sign In'}</span>
+            <span>{loading ? t('loading') : 'Sign In with Email'}</span>
             <ArrowRight size={16} />
           </button>
         </form>
 
         {/* Quick Demo Switcher */}
-        <div style={{ marginTop: '28px', borderTop: `1px solid ${colors.border}`, paddingTop: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ marginTop: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <Sparkles size={14} color="#F59E0B" />
-            1-Tap Demo Role Login
+            1-Tap Role Logins (Demo Accounts)
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -231,7 +279,7 @@ const LoginScreen = () => {
                 textAlign: 'left'
               }}
             >
-              👨‍🏫 Teacher/Admin
+              👨‍🏫 Teacher
             </button>
 
             <button
@@ -265,7 +313,7 @@ const LoginScreen = () => {
                 textAlign: 'left'
               }}
             >
-              👨‍🎓 Student 1 (Kasun)
+              👨‍🎓 Student (Kasun)
             </button>
 
             <button
@@ -282,7 +330,7 @@ const LoginScreen = () => {
                 textAlign: 'left'
               }}
             >
-              👩‍🎓 Student 2 (Dilani)
+              👩‍🎓 Student (Dilani)
             </button>
           </div>
         </div>
@@ -292,3 +340,4 @@ const LoginScreen = () => {
 };
 
 export default LoginScreen;
+

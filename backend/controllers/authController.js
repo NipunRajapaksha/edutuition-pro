@@ -219,4 +219,76 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { login, register, getMe, updateProfile, changePassword };
+const getUsers = async (req, res, next) => {
+  try {
+    const users = storage.users.find().map(u => ({
+      id: u._id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      phone: u.phone,
+      studentProfileId: u.studentProfileId,
+      linkedStudentId: u.linkedStudentId,
+      createdAt: u.createdAt
+    }));
+    res.json({ success: true, count: users.length, data: users });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createUser = async (req, res, next) => {
+  try {
+    const { name, email, password, role = 'student', phone = '', studentProfileId = null, linkedStudentId = null } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password required' });
+    }
+
+    const existing = storage.users.findOne({ email: email.toLowerCase().trim() });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = storage.users.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      role,
+      phone: phone.trim(),
+      studentProfileId,
+      linkedStudentId,
+      createdAt: new Date().toISOString()
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'User account created successfully',
+      data: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        phone: newUser.phone
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    storage.users.findByIdAndDelete(id);
+    res.json({ success: true, message: 'User account deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { login, register, getMe, updateProfile, changePassword, getUsers, createUser, deleteUser };
+

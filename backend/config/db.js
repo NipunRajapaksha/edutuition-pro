@@ -3,7 +3,14 @@ const mongoose = require('mongoose');
 let isConnected = false;
 
 const connectDB = async () => {
-  const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tuition_management';
+  // If no MONGODB_URI is provided, skip Mongoose connection attempt immediately
+  if (!process.env.MONGODB_URI) {
+    console.log(`🚀 Operating in High-Performance Embedded JSON Datastore mode (zero-config, persistent).`);
+    isConnected = false;
+    return false;
+  }
+
+  const mongoUri = process.env.MONGODB_URI;
 
   try {
     const conn = await mongoose.connect(mongoUri, {
@@ -23,3 +30,4 @@ const connectDB = async () => {
 const getIsConnected = () => isConnected;
 
 module.exports = { connectDB, getIsConnected };
+

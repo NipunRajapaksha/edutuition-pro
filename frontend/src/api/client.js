@@ -25,6 +25,10 @@ export const api = {
   getMe: () => client.get('/auth/me'),
   updateProfile: (data) => client.put('/auth/profile', data),
   changePassword: (data) => client.put('/auth/change-password', data),
+  getUsers: () => client.get('/auth/users'),
+  createUser: (data) => client.post('/auth/users', data),
+  deleteUser: (id) => client.delete(`/auth/users/${id}`),
+
 
   // Settings
   getSettings: () => client.get('/settings'),

@@ -32,6 +32,7 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
 
   if (role === 'teacher') {
     menuItems = [
+      { id: 'userManagement', label: 'User Accounts & Logins (ගිණුම්)', icon: Users, color: '#F59E0B', desc: 'Create & manage Teacher, Student and Parent logins', badge: 'ADMIN' },
       { id: 'teacherProfile', label: t('navTeacherProfile'), icon: UserCheck, color: '#10B981', desc: 'Personal details, bio & change password' },
       { id: 'instituteSettings', label: t('navInstituteSettings'), icon: Building, color: '#4F46E5', desc: 'Institute name, contact info & branding' },
       { id: 'attendance', label: t('navAttendance'), icon: CheckCircle2, color: '#10B981', desc: 'Daily attendance logs & QR generator' },
@@ -45,6 +46,7 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
       { id: 'calendar', label: t('navCalendar'), icon: Calendar, color: '#6366F1', desc: 'Timetable, exam dates & holidays' },
       { id: 'installApp', label: t('navInstallApp'), icon: Smartphone, color: '#10B981', desc: 'Install free mobile app to phone home screen', badge: 'FREE' }
     ];
+
   } else if (role === 'parent') {
     menuItems = [
       { id: 'attendance', label: t('navAttendance'), icon: CheckCircle2, color: '#10B981', desc: 'Child attendance rate & date history' },
