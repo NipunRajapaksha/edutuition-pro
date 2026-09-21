@@ -104,8 +104,23 @@ class Collection {
   }
 
   findOne(filter = {}) {
-    const items = this.find(filter);
-    return items.length > 0 ? items[0] : null;
+    const items = this._getItems();
+    for (const item of items) {
+      let match = true;
+      for (const [key, val] of Object.entries(filter)) {
+        if (typeof val === 'string' && typeof item[key] === 'string') {
+          if (item[key].toLowerCase().trim() !== val.toLowerCase().trim()) {
+            match = false;
+            break;
+          }
+        } else if (item[key] !== val) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return item;
+    }
+    return null;
   }
 
   findById(id) {

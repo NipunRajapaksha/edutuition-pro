@@ -40,20 +40,21 @@ const initDb = async () => {
   return dbInitPromise;
 };
 
-// Ensure database is ready before processing any API requests
+// Ensure database is ready before processing any request
 app.use(async (req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    try {
-      await initDb();
-    } catch (err) {
-      console.error('Error during database init middleware:', err);
-    }
+  try {
+    await initDb();
+  } catch (err) {
+    console.error('Error during database init middleware:', err);
   }
   next();
 });
 
+// API Router
+const apiRouter = express.Router();
+
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     app: 'Tuition Class Management Backend API',
@@ -62,37 +63,43 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/students', require('./routes/studentRoutes'));
-app.use('/api/classes', require('./routes/classRoutes'));
-app.use('/api/attendance', require('./routes/attendanceRoutes'));
-app.use('/api/fees', require('./routes/feeRoutes'));
-app.use('/api/homework', require('./routes/homeworkRoutes'));
-app.use('/api/exams', require('./routes/examRoutes'));
-app.use('/api/analytics', require('./routes/analyticsRoutes'));
-app.use('/api/materials', require('./routes/materialRoutes'));
-app.use('/api/announcements', require('./routes/announcementRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/calendar', require('./routes/calendarRoutes'));
-app.use('/api/ai', require('./routes/aiRoutes'));
-app.use('/api/reports', require('./routes/reportRoutes'));
-app.use('/api/settings', require('./routes/settingsRoutes'));
+apiRouter.use('/auth', require('./routes/authRoutes'));
+apiRouter.use('/students', require('./routes/studentRoutes'));
+apiRouter.use('/classes', require('./routes/classRoutes'));
+apiRouter.use('/attendance', require('./routes/attendanceRoutes'));
+apiRouter.use('/fees', require('./routes/feeRoutes'));
+apiRouter.use('/homework', require('./routes/homeworkRoutes'));
+apiRouter.use('/exams', require('./routes/examRoutes'));
+apiRouter.use('/analytics', require('./routes/analyticsRoutes'));
+apiRouter.use('/materials', require('./routes/materialRoutes'));
+apiRouter.use('/announcements', require('./routes/announcementRoutes'));
+apiRouter.use('/notifications', require('./routes/notificationRoutes'));
+apiRouter.use('/calendar', require('./routes/calendarRoutes'));
+apiRouter.use('/ai', require('./routes/aiRoutes'));
+apiRouter.use('/reports', require('./routes/reportRoutes'));
+apiRouter.use('/settings', require('./routes/settingsRoutes'));
+
+// Mount API routes on both /api and root /
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 // Serve frontend static build if available
 const path = require('path');
 const fs = require('fs');
-const frontendDistPath = path.join(__dirname, '../frontend/dist');
+const rootDistPath = path.join(__dirname, '../dist');
+const frontendDistPath = fs.existsSync(rootDistPath) ? rootDistPath : path.join(__dirname, '../frontend/dist');
 
 if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
   
   // SPA fallback for all non-API GET routes
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/students')) {
       return next();
     }
     res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
   });
 }
 
