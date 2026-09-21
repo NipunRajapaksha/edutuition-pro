@@ -32,6 +32,8 @@ import PerformanceScreen from './screens/teacher/PerformanceScreen';
 import StudyMaterialsScreen from './screens/teacher/StudyMaterialsScreen';
 import AiToolsScreen from './screens/teacher/AiToolsScreen';
 import ReportsScreen from './screens/teacher/ReportsScreen';
+import InstituteSettingsScreen from './screens/teacher/InstituteSettingsScreen';
+import TeacherProfileScreen from './screens/teacher/TeacherProfileScreen';
 
 // Student Screens
 import StudentDashboard from './screens/student/StudentDashboard';
@@ -39,6 +41,7 @@ import StudentClassesScreen from './screens/student/StudentClassesScreen';
 import StudentHomeworkScreen from './screens/student/StudentHomeworkScreen';
 import StudentResultsScreen from './screens/student/StudentResultsScreen';
 import StudentFeesScreen from './screens/student/StudentFeesScreen';
+import StudentProfileScreen from './screens/student/StudentProfileScreen';
 
 // Parent Screens
 import ParentDashboard from './screens/parent/ParentDashboard';
@@ -51,6 +54,7 @@ import AnnouncementsScreen from './screens/shared/AnnouncementsScreen';
 import NotificationsScreen from './screens/shared/NotificationsScreen';
 import CalendarScreen from './screens/shared/CalendarScreen';
 import MoreMenuScreen from './screens/shared/MoreMenuScreen';
+import InstallAppModal from './components/InstallAppModal';
 
 import { Smartphone, Monitor } from 'lucide-react';
 
@@ -66,6 +70,9 @@ const MainApp = () => {
   const [activeReceipt, setActiveReceipt] = useState(null);
   const [activeStudentIdCard, setActiveStudentIdCard] = useState(null);
   const [activeQuickAction, setActiveQuickAction] = useState(null); // 'addStudent', 'recordPayment', etc.
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   // Mobile frame simulator toggle for web view
   const [mobileFrame, setMobileFrame] = useState(true);
@@ -75,6 +82,23 @@ const MainApp = () => {
     if (role === 'teacher') setActiveTab('dashboard');
     else if (role === 'student' || role === 'parent') setActiveTab('home');
   }, [role]);
+
+  // Listen for PWA install prompt & fetch institute settings
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+    api.getSettings().then(res => {
+      if (res.data.success && res.data.data) {
+        setSettings(res.data.data);
+      }
+    }).catch(() => {});
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
 
   // Fetch unread notifications count
   const fetchUnreadCount = async () => {
@@ -142,6 +166,20 @@ const MainApp = () => {
     }
     if (activeTab === 'calendar') {
       return <CalendarScreen />;
+    }
+    if (activeTab === 'teacherProfile') {
+      return <TeacherProfileScreen />;
+    }
+    if (activeTab === 'studentProfile') {
+      return <StudentProfileScreen onViewQrId={(student) => setActiveStudentIdCard(student)} />;
+    }
+    if (activeTab === 'instituteSettings') {
+      return <InstituteSettingsScreen onSettingsUpdated={(updated) => setSettings(updated)} />;
+    }
+    if (activeTab === 'installApp') {
+      setTimeout(() => setShowInstallModal(true), 50);
+      setActiveTab('more');
+      return <MoreMenuScreen onSelectModule={(tab) => setActiveTab(tab)} onViewMyQr={(student) => setActiveStudentIdCard(student)} />;
     }
 
     // Role-specific screens
@@ -229,27 +267,13 @@ const MainApp = () => {
         case 'fees':
           return <StudentFeesScreen onViewReceipt={handleViewReceipt} />;
         case 'profile':
+          return <StudentProfileScreen onViewQrId={(student) => setActiveStudentIdCard(student)} />;
+        case 'more':
           return (
-            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: '800', color: colors.text }}>My Student ID Card</h2>
-              <div style={{ backgroundColor: colors.surface, borderRadius: '18px', padding: '20px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
-                <button
-                  onClick={() => setActiveStudentIdCard(user.studentProfile || { fullName: user.name, studentId: 'STU-2026-001', grade: 'Grade 10' })}
-                  style={{
-                    padding: '12px 24px',
-                    borderRadius: '12px',
-                    backgroundColor: colors.primary,
-                    color: '#FFFFFF',
-                    border: 'none',
-                    fontWeight: '700',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  View Digital Student ID Card (QR)
-                </button>
-              </div>
-            </div>
+            <MoreMenuScreen
+              onSelectModule={(tab) => setActiveTab(tab)}
+              onViewMyQr={(student) => setActiveStudentIdCard(student)}
+            />
           );
         default:
           return <StudentDashboard onNavigate={(tab) => setActiveTab(tab)} onViewMyQr={setActiveStudentIdCard} onViewReceipt={handleViewReceipt} />;
@@ -343,6 +367,11 @@ const MainApp = () => {
         <Header
           onNotificationClick={() => setActiveTab('notifications')}
           unreadCount={unreadNotifications}
+          instituteName={settings?.instituteName}
+          onProfileClick={() => {
+            if (role === 'teacher') setActiveTab('teacherProfile');
+            else if (role === 'student') setActiveTab('studentProfile');
+          }}
         />
 
         {/* Dynamic Screen Content */}
@@ -415,6 +444,13 @@ const MainApp = () => {
           onSuccess={() => setActiveTab('classes')}
         />
       )}
+
+      {/* Install Mobile App PWA Modal */}
+      <InstallAppModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        installPrompt={installPrompt}
+      />
     </div>
   );
 };

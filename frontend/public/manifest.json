@@ -1,0 +1,19 @@
+{
+  "name": "EduTuition Pro | ශිල්ප ඇකඩමි",
+  "short_name": "EduTuition",
+  "description": "Tuition Class Management Mobile Application for Private Teachers & Institutes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F19",
+  "theme_color": "#0F172A",
+  "orientation": "portrait",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

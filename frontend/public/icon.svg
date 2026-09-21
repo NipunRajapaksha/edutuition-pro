@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="50%" stop-color="#4338CA" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <linearGradient id="capGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E0E7FF" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- App Rounded Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGradient)" />
+
+  <!-- Inner Graduation Cap Symbol -->
+  <g filter="url(#shadow)" transform="translate(64, 64) scale(0.75)">
+    <!-- Cap Diamond -->
+    <path d="M256 96 L464 192 L256 288 L48 192 Z" fill="url(#capGradient)" />
+    <!-- Cap Under Skullcap -->
+    <path d="M128 230 V330 C128 370, 384 370, 384 330 V230 L256 288 Z" fill="#EEF2FF" />
+    <!-- Tassel String and Pendant -->
+    <path d="M416 215 V330" stroke="#FBBF24" stroke-width="12" stroke-linecap="round" />
+    <circle cx="416" cy="345" r="14" fill="#FBBF24" />
+  </g>
+</svg>

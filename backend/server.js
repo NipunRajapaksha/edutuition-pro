@@ -45,6 +45,7 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/calendar', require('./routes/calendarRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
+app.use('/api/settings', require('./routes/settingsRoutes'));
 
 // Serve frontend static build if available
 const path = require('path');

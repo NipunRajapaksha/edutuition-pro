@@ -20,9 +20,15 @@ client.interceptors.request.use(
 );
 
 export const api = {
-  // Auth
+  // Auth & Profile
   login: (email, password) => client.post('/auth/login', { email, password }),
   getMe: () => client.get('/auth/me'),
+  updateProfile: (data) => client.put('/auth/profile', data),
+  changePassword: (data) => client.put('/auth/change-password', data),
+
+  // Settings
+  getSettings: () => client.get('/settings'),
+  updateSettings: (data) => client.put('/settings', data),
 
   // Dashboard
   getDashboardStats: () => client.get('/analytics/dashboard-stats'),

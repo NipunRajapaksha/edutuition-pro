@@ -136,6 +136,8 @@ const getMe = async (req, res, next) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        bio: user.bio,
+        subjects: user.subjects,
         avatar: user.avatar,
         studentProfile,
         linkedStudent
@@ -146,4 +148,75 @@ const getMe = async (req, res, next) => {
   }
 };
 
-module.exports = { login, register, getMe };
+const updateProfile = async (req, res, next) => {
+  try {
+    const { name, phone, bio, subjects } = req.body;
+    const user = storage.users.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const updated = storage.users.findByIdAndUpdate(req.user.id, {
+      name: name?.trim() || user.name,
+      phone: phone !== undefined ? phone.trim() : user.phone,
+      bio: bio !== undefined ? bio.trim() : user.bio,
+      subjects: subjects !== undefined ? subjects : user.subjects,
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: updated._id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        phone: updated.phone,
+        bio: updated.bio,
+        subjects: updated.subjects
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current and new password required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+
+    const user = storage.users.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    storage.users.findByIdAndUpdate(req.user.id, {
+      password: hashedPassword,
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { login, register, getMe, updateProfile, changePassword };

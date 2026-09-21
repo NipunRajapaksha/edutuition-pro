@@ -13,7 +13,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
-const Header = ({ onNotificationClick, unreadCount = 0 }) => {
+const Header = ({ onNotificationClick, unreadCount = 0, instituteName, onProfileClick }) => {
   const { user, logout, role } = useAuth();
   const { isDark, toggleTheme, colors } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
@@ -41,7 +41,10 @@ const Header = ({ onNotificationClick, unreadCount = 0 }) => {
       }}
     >
       {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div 
+        onClick={onProfileClick}
+        style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: onProfileClick ? 'pointer' : 'default' }}
+      >
         <div
           style={{
             width: '38px',
@@ -58,8 +61,8 @@ const Header = ({ onNotificationClick, unreadCount = 0 }) => {
           <GraduationCap size={22} />
         </div>
         <div>
-          <div style={{ fontSize: '16px', fontWeight: '800', color: colors.text, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-            {t('appName')}
+          <div style={{ fontSize: '15px', fontWeight: '800', color: colors.text, letterSpacing: '-0.02em', lineHeight: 1.1, maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {instituteName || t('appName')}
           </div>
           <div style={{ fontSize: '10px', color: colors.textMuted, fontWeight: '500' }}>
             {t('tagline')}

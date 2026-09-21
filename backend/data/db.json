@@ -3,13 +3,14 @@
     {
       "_id": "9a877b19-c40d-44df-a2f1-b7a66fdef869",
       "createdAt": "2026-09-21T09:20:25.154Z",
-      "updatedAt": "2026-09-21T09:20:25.154Z",
-      "name": "Master Nayanajith Perera (ගුරුතුමා)",
+      "updatedAt": "2026-09-21T13:05:45.785Z",
+      "name": "Sunil Perera (B.Sc)",
       "email": "teacher@tuition.lk",
       "password": "$2b$10$DBHvVzWeUvDZbbvqKtZziu4HgMK4Df8TFXE5TJA1tIwhcjbEcd696",
       "role": "teacher",
       "phone": "+94 77 123 4567",
-      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "subjects": "Combined Mathematics, Applied Maths"
     },
     {
       "_id": "402de82d-af84-486f-a421-05cfa829d51c",
@@ -799,13 +800,8 @@
     }
   ],
   "settings": {
-    "instituteName": "Apex Tuition Academy (ශිල්ප කලා උසස් අධ්‍යාපන ආයතනය)",
-    "currency": "Rs.",
-    "phone": "+94 11 280 9900 / +94 77 123 4567",
-    "email": "contact@apextuition.lk",
-    "address": "No. 142, High Level Road, Nugegoda, Sri Lanka",
-    "minAttendanceAlertPercent": 75,
-    "enableAiAssistant": true,
-    "updatedAt": "2026-09-21T09:20:25.149Z"
+    "instituteName": "Apex Higher Education (ශිල්ප කලා ඇකඩමි)",
+    "phone": "+94 77 999 8888",
+    "updatedAt": "2026-09-21T13:05:45.779Z"
   }
 }

@@ -16,6 +16,9 @@ import {
   LogOut,
   QrCode,
   ShieldCheck,
+  Building,
+  UserCheck,
+  Smartphone,
   CheckCircle2,
   Receipt
 } from 'lucide-react';
@@ -29,6 +32,8 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
 
   if (role === 'teacher') {
     menuItems = [
+      { id: 'teacherProfile', label: t('navTeacherProfile'), icon: UserCheck, color: '#10B981', desc: 'Personal details, bio & change password' },
+      { id: 'instituteSettings', label: t('navInstituteSettings'), icon: Building, color: '#4F46E5', desc: 'Institute name, contact info & branding' },
       { id: 'attendance', label: t('navAttendance'), icon: CheckCircle2, color: '#10B981', desc: 'Daily attendance logs & QR generator' },
       { id: 'homework', label: t('navHomework'), icon: FileText, color: '#06B6D4', desc: 'Create tasks & review submissions' },
       { id: 'exams', label: t('navExams'), icon: Award, color: '#EF4444', desc: 'Examinations, rankings & marks' },
@@ -37,7 +42,8 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
       { id: 'aiTools', label: t('navAiTools'), icon: BrainCircuit, color: '#8B5CF6', desc: 'AI diagnostics & homework/exam generators' },
       { id: 'reports', label: t('navReports'), icon: FileSpreadsheet, color: '#EC4899', desc: 'Exportable printable & CSV reports' },
       { id: 'announcements', label: t('navAnnouncements'), icon: Megaphone, color: '#3B82F6', desc: 'Broadcast notices & alerts' },
-      { id: 'calendar', label: t('navCalendar'), icon: Calendar, color: '#6366F1', desc: 'Timetable, exam dates & holidays' }
+      { id: 'calendar', label: t('navCalendar'), icon: Calendar, color: '#6366F1', desc: 'Timetable, exam dates & holidays' },
+      { id: 'installApp', label: t('navInstallApp'), icon: Smartphone, color: '#10B981', desc: 'Install free mobile app to phone home screen', badge: 'FREE' }
     ];
   } else if (role === 'parent') {
     menuItems = [
@@ -45,16 +51,19 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
       { id: 'fees', label: t('navFees'), icon: Receipt, color: '#F59E0B', desc: 'Child fee status & verified receipts' },
       { id: 'progress', label: t('navChildProgress'), icon: TrendingUp, color: '#6366F1', desc: 'Test scores, ranks & teacher notes' },
       { id: 'announcements', label: t('navAnnouncements'), icon: Megaphone, color: '#3B82F6', desc: 'Important institute announcements' },
-      { id: 'calendar', label: t('navCalendar'), icon: Calendar, color: '#06B6D4', desc: 'View class timetable & holidays' }
+      { id: 'calendar', label: t('navCalendar'), icon: Calendar, color: '#06B6D4', desc: 'View class timetable & holidays' },
+      { id: 'installApp', label: t('navInstallApp'), icon: Smartphone, color: '#10B981', desc: 'Install free mobile app to phone home screen', badge: 'FREE' }
     ];
   } else if (role === 'student') {
     menuItems = [
+      { id: 'studentProfile', label: t('navStudentProfile'), icon: UserCheck, color: '#4F46E5', desc: 'View official student record & ID' },
       { id: 'classes', label: t('navMyClasses'), icon: FolderOpen, color: '#06B6D4', desc: 'Class schedules & study materials' },
       { id: 'homework', label: t('navMyHomework'), icon: FileText, color: '#F59E0B', desc: 'Submit homework & view grades' },
       { id: 'results', label: t('navMyResults'), icon: Award, color: '#EF4444', desc: 'Report card, grades & rank' },
       { id: 'fees', label: t('navMyFees'), icon: Receipt, color: '#10B981', desc: 'Tuition fees & digital receipts' },
       { id: 'announcements', label: t('navAnnouncements'), icon: Megaphone, color: '#3B82F6', desc: 'Institute announcements' },
-      { id: 'calendar', label: t('navCalendar'), icon: Calendar, color: '#6366F1', desc: 'Academic calendar' }
+      { id: 'calendar', label: t('navCalendar'), icon: Calendar, color: '#6366F1', desc: 'Academic calendar' },
+      { id: 'installApp', label: t('navInstallApp'), icon: Smartphone, color: '#10B981', desc: 'Install free mobile app to phone home screen', badge: 'FREE' }
     ];
   }
 
@@ -62,6 +71,10 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '90px' }}>
       {/* User Card */}
       <div
+        onClick={() => {
+          if (role === 'teacher') onSelectModule('teacherProfile');
+          else if (role === 'student') onSelectModule('studentProfile');
+        }}
         style={{
           backgroundColor: colors.surface,
           borderRadius: '18px',
@@ -70,7 +83,8 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '14px',
-          boxShadow: colors.cardShadow
+          boxShadow: colors.cardShadow,
+          cursor: (role === 'teacher' || role === 'student') ? 'pointer' : 'default'
         }}
       >
         <div
@@ -90,8 +104,11 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
           {user?.name ? user.name[0] : 'U'}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '15px', fontWeight: '800', color: colors.text }}>
-            {user?.name || 'User Profile'}
+          <div style={{ fontSize: '15px', fontWeight: '800', color: colors.text, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>{user?.name || 'User Profile'}</span>
+            {(role === 'teacher' || role === 'student') && (
+              <span style={{ fontSize: '10px', color: colors.primaryLight, fontWeight: '600' }}>(View Profile ➔)</span>
+            )}
           </div>
           <div style={{ fontSize: '11px', color: colors.textMuted }}>
             {user?.email} • <span style={{ textTransform: 'capitalize', color: colors.primaryLight, fontWeight: '700' }}>{role}</span>
@@ -100,7 +117,10 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
 
         {role === 'student' && onViewMyQr && (
           <button
-            onClick={() => onViewMyQr(user.studentProfile)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewMyQr(user.studentProfile);
+            }}
             style={{
               padding: '8px',
               borderRadius: '10px',
@@ -152,8 +172,13 @@ const MoreMenuScreen = ({ onSelectModule, onViewMyQr }) => {
                   <Icon size={20} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: colors.text }}>
-                    {item.label}
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: colors.text, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>{item.label}</span>
+                    {item.badge && (
+                      <span style={{ fontSize: '9px', fontWeight: '800', backgroundColor: '#10B981', color: '#FFFFFF', padding: '1px 6px', borderRadius: '10px' }}>
+                        {item.badge}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '11px', color: colors.textMuted }}>
                     {item.desc}
