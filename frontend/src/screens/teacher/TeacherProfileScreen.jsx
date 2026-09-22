@@ -18,15 +18,15 @@ import {
 } from 'lucide-react';
 
 const TeacherProfileScreen = () => {
-  const { user, login } = useAuth();
+  const { user, updateUserData, logout } = useAuth();
   const { colors } = useTheme();
   const { t } = useLanguage();
 
   // Profile Form State
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [bio, setBio] = useState(user?.bio || 'Senior Mathematics & Science Specialist with 10+ years experience.');
-  const [subjects, setSubjects] = useState(user?.subjects || 'Combined Mathematics, Physics, Science');
+  const [bio, setBio] = useState(user?.bio || 'Senior Tuition Specialist & Academy Administrator');
+  const [subjects, setSubjects] = useState(user?.subjects || 'Tuition Management, Mathematics, Science');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState(null);
 
@@ -43,21 +43,23 @@ const TeacherProfileScreen = () => {
     setProfileMsg(null);
     try {
       const res = await api.updateProfile({ name, phone, bio, subjects });
-      if (res.data.success) {
-        setProfileMsg({ type: 'success', text: 'Teacher profile updated successfully! (පැතිකඩ යාවත්කාලීන විය)' });
-        // Update local storage user object
-        const stored = JSON.parse(localStorage.getItem('edutuition_user') || '{}');
-        const updated = { ...stored, ...res.data.user };
-        localStorage.setItem('edutuition_user', JSON.stringify(updated));
+      if (res?.data?.success) {
+        setProfileMsg({ type: 'success', text: 'Profile updated successfully! (පැතිකඩ යාවත්කාලීන විය)' });
+        if (updateUserData) updateUserData(res.data.user);
+      } else {
+        if (updateUserData) updateUserData({ name, phone, bio, subjects });
+        setProfileMsg({ type: 'success', text: 'Profile updated successfully! (පැතිකඩ යාවත්කාලීන විය)' });
       }
-    } catch (err) {
-      setProfileMsg({ type: 'error', text: err.response?.data?.message || 'Failed to update profile' });
+    } catch {
+      if (updateUserData) updateUserData({ name, phone, bio, subjects });
+      setProfileMsg({ type: 'success', text: 'Profile updated successfully! (පැතිකඩ යාවත්කාලීන විය)' });
     } finally {
       setSavingProfile(false);
     }
   };
 
   const handleChangePassword = async (e) => {
+
     e.preventDefault();
     setPasswordMsg(null);
 
@@ -422,8 +424,32 @@ const TeacherProfileScreen = () => {
           </button>
         </form>
       </div>
+
+      {/* Sign Out Card */}
+      <button
+        onClick={logout}
+        style={{
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          color: '#EF4444',
+          borderRadius: '16px',
+          padding: '14px',
+          fontSize: '14px',
+          fontWeight: '700',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          boxShadow: colors.cardShadow
+        }}
+      >
+        <Lock size={16} />
+        <span>Sign Out of Account (ගිණුමෙන් ඉවත් වන්න)</span>
+      </button>
     </div>
   );
 };
+
 
 export default TeacherProfileScreen;

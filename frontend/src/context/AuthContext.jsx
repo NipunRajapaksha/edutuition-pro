@@ -3,7 +3,7 @@ import { api } from '../api/client';
 
 const AuthContext = createContext();
 
-// Default pre-seeded users for guaranteed instant login anywhere
+// Default pre-seeded Super Admin account
 const DEFAULT_USERS = [
   {
     id: 'user_admin_001',
@@ -14,65 +14,11 @@ const DEFAULT_USERS = [
     isAdmin: true,
     phone: '+94 77 123 4567',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-    subjects: 'Institute Administration & Management'
-  },
-  {
-    id: 'user_teacher_001',
-    name: 'Master Nayanajith Perera (ගුරුතුමා)',
-    email: 'teacher@tuition.lk',
-    password: ['password123', 'admin123'],
-    role: 'teacher',
-    isAdmin: false,
-    phone: '+94 77 123 4567',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    subjects: 'Mathematics, Science'
-  },
-  {
-    id: 'user_student_001',
-    name: 'Kasun Bandara (කසුන් බණ්ඩාර)',
-    email: 'student1@tuition.lk',
-    password: ['password123', '123456'],
-    role: 'student',
-    phone: '0714567890',
-    avatar: 'https://api.dicebear.com/7.x/bottts/png?seed=STU-2026-001',
-    studentProfile: {
-      studentId: 'STU-2026-001',
-      fullName: 'Kasun Bandara (කසුන් බණ්ඩාර)',
-      grade: 'Grade 10',
-      school: 'Ananda College, Colombo'
-    }
-  },
-  {
-    id: 'user_student_002',
-    name: 'Dilani Senanayake (දිලානි සේනානායක)',
-    email: 'student2@tuition.lk',
-    password: ['password123', '123456'],
-    role: 'student',
-    phone: '0723456789',
-    avatar: 'https://api.dicebear.com/7.x/bottts/png?seed=STU-2026-002',
-    studentProfile: {
-      studentId: 'STU-2026-002',
-      fullName: 'Dilani Senanayake (දිලානි සේනානායක)',
-      grade: 'Grade 10',
-      school: 'Visakha Vidyalaya, Colombo'
-    }
-  },
-  {
-    id: 'user_parent_001',
-    name: 'Sunil Bandara (සුනිල් බණ්ඩාර)',
-    email: 'parent1@tuition.lk',
-    password: ['password123', '123456'],
-    role: 'parent',
-    phone: '0779876543',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    linkedStudent: {
-      studentId: 'STU-2026-001',
-      fullName: 'Kasun Bandara (කසුන් බණ්ඩාර)',
-      grade: 'Grade 10',
-      school: 'Ananda College, Colombo'
-    }
+    subjects: 'Institute Administration & Management',
+    bio: 'Primary Institute Administrator & Owner'
   }
 ];
+
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -220,6 +166,14 @@ export const AuthProvider = ({ children }) => {
     return { success: true, user: newUser };
   };
 
+  const updateUserData = (updatedData) => {
+    setUser(prev => {
+      const merged = { ...prev, ...updatedData };
+      localStorage.setItem('edutuition_user_data', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   const logout = () => {
     localStorage.removeItem('edutuition_token');
     localStorage.removeItem('edutuition_user_data');
@@ -240,6 +194,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         addCustomUser,
         getCustomUsers,
+        updateUserData,
         isAuthenticated: !!token && !!user
       }}
     >
@@ -247,6 +202,7 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
 
 export const useAuth = () => useContext(AuthContext);
 

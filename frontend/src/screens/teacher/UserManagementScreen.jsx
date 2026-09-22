@@ -73,42 +73,11 @@ const UserManagementScreen = ({ onBack }) => {
         role: 'admin',
         phone: '+94 77 123 4567',
         subjects: 'Institute Administration'
-      },
-      {
-        id: 'user_teacher_001',
-        name: 'Master Nayanajith Perera (නයනජිත් පෙරේරා)',
-        email: 'teacher@tuition.lk',
-        role: 'teacher',
-        phone: '+94 77 123 4567',
-        subjects: 'Mathematics'
-      },
-      {
-        id: 'user_student_001',
-        name: 'Kasun Bandara (කසුන් බණ්ඩාර)',
-        email: 'student1@tuition.lk',
-        role: 'student',
-        phone: '0714567890',
-        subjects: 'Grade 10'
-      },
-      {
-        id: 'user_student_002',
-        name: 'Dilani Senanayake (දිලානි සේනානායක)',
-        email: 'student2@tuition.lk',
-        role: 'student',
-        phone: '0723456789',
-        subjects: 'Grade 10'
-      },
-      {
-        id: 'user_parent_001',
-        name: 'Sunil Bandara (සුනිල් බණ්ඩාර)',
-        email: 'parent1@tuition.lk',
-        role: 'parent',
-        phone: '0779876543',
-        subjects: 'Parent of Kasun Bandara'
       }
     ];
     setUsers([...defaults, ...customUsers]);
   };
+
 
   useEffect(() => {
     fetchUsers();

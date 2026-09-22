@@ -100,10 +100,9 @@ if (fs.existsSync(frontendDistPath)) {
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
-  });
-}
 
 // Error handler
+
 app.use(errorHandler);
 
 // Start server (skip app.listen if imported as a module or running inside Vercel serverless environment)

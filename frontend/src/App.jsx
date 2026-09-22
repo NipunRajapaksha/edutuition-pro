@@ -77,6 +77,9 @@ const MainApp = () => {
 
   // Mobile frame simulator toggle for web view
   const [mobileFrame, setMobileFrame] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const triggerRefresh = () => setRefreshKey(k => k + 1);
+
 
   // Sync initial tab based on role
   useEffect(() => {
@@ -390,7 +393,7 @@ const MainApp = () => {
         />
 
         {/* Dynamic Screen Content */}
-        <main style={{ flex: 1 }}>
+        <main key={`${activeTab}_${refreshKey}`} style={{ flex: 1 }}>
           {renderScreen()}
         </main>
 
@@ -421,44 +424,63 @@ const MainApp = () => {
       {activeQuickAction === 'addStudent' && (
         <AddStudentModal
           onClose={() => setActiveQuickAction(null)}
-          onSuccess={() => setActiveTab('students')}
+          onSuccess={() => {
+            triggerRefresh();
+            setActiveTab('students');
+          }}
         />
       )}
 
       {activeQuickAction === 'recordPayment' && (
         <RecordPaymentModal
           onClose={() => setActiveQuickAction(null)}
-          onSuccess={(fee) => handleViewReceipt(fee.receiptNumber)}
+          onSuccess={(fee) => {
+            triggerRefresh();
+            handleViewReceipt(fee.receiptNumber);
+          }}
         />
       )}
 
       {activeQuickAction === 'addHomework' && (
         <AddHomeworkModal
           onClose={() => setActiveQuickAction(null)}
-          onSuccess={() => setActiveTab('homework')}
+          onSuccess={() => {
+            triggerRefresh();
+            setActiveTab('homework');
+          }}
         />
       )}
 
       {activeQuickAction === 'createExam' && (
         <CreateExamModal
           onClose={() => setActiveQuickAction(null)}
-          onSuccess={() => setActiveTab('exams')}
+          onSuccess={() => {
+            triggerRefresh();
+            setActiveTab('exams');
+          }}
         />
       )}
 
       {activeQuickAction === 'sendNotice' && (
         <SendNoticeModal
           onClose={() => setActiveQuickAction(null)}
-          onSuccess={() => setActiveTab('announcements')}
+          onSuccess={() => {
+            triggerRefresh();
+            setActiveTab('announcements');
+          }}
         />
       )}
 
       {activeQuickAction === 'addClass' && (
         <AddClassModal
           onClose={() => setActiveQuickAction(null)}
-          onSuccess={() => setActiveTab('classes')}
+          onSuccess={() => {
+            triggerRefresh();
+            setActiveTab('classes');
+          }}
         />
       )}
+
 
       {/* Install Mobile App PWA Modal */}
       <InstallAppModal
