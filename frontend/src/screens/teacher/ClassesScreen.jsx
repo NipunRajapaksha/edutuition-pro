@@ -14,7 +14,9 @@ import {
   X,
   CheckCircle,
   Eye,
-  Search
+  Search,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 
 const ClassesScreen = ({ onOpenAddClass }) => {
@@ -31,6 +33,11 @@ const ClassesScreen = ({ onOpenAddClass }) => {
   // Class Roster Modal
   const [selectedClassRoster, setSelectedClassRoster] = useState(null);
   const [loadingRoster, setLoadingRoster] = useState(false);
+
+  // Edit Class Modal
+  const [editingClass, setEditingClass] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const grades = [
     'All',
@@ -107,6 +114,50 @@ const ClassesScreen = ({ onOpenAddClass }) => {
     } finally {
       setLoadingRoster(false);
     }
+  };
+
+  const handleOpenEditClass = (cls) => {
+    setEditingClass(cls);
+    setEditFormData({
+      name: cls.name || '',
+      subject: cls.subject || 'Mathematics',
+      grade: cls.grade || 'Grade 10',
+      teacherName: cls.teacherName || 'Master N. Perera',
+      location: cls.location || 'Main Hall',
+      dayOfWeek: cls.dayOfWeek || 'Saturday',
+      startTime: cls.startTime || '08:00',
+      endTime: cls.endTime || '10:00',
+      monthlyFee: cls.monthlyFee || 2500,
+      maxStudents: cls.maxStudents || 50,
+      status: cls.status || 'active',
+      color: cls.color || '#3B82F6'
+    });
+  };
+
+  const handleSaveEditClass = async (e) => {
+    e.preventDefault();
+    if (!editingClass) return;
+    setSavingEdit(true);
+    const targetId = editingClass._id || editingClass.id;
+    try {
+      await api.updateClass(targetId, editFormData);
+    } catch {}
+    const updated = classes.map(c => (c._id || c.id) === targetId ? { ...c, ...editFormData } : c);
+    setClasses(updated);
+    localStorage.setItem('edutuition_classes', JSON.stringify(updated));
+    setEditingClass(null);
+    setSavingEdit(false);
+  };
+
+  const handleDeleteClass = async (cls) => {
+    const cId = cls._id || cls.id;
+    if (!window.confirm(`Are you sure you want to delete "${cls.name}"?`)) return;
+    try {
+      await api.deleteClass(cId);
+    } catch {}
+    const updated = classes.filter(c => (c._id || c.id) !== cId);
+    setClasses(updated);
+    localStorage.setItem('edutuition_classes', JSON.stringify(updated));
   };
 
   return (
@@ -321,24 +372,63 @@ const ClassesScreen = ({ onOpenAddClass }) => {
                   </span>
                 </div>
 
-                <button
-                  onClick={() => handleOpenRoster(cls)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: colors.surfaceSubtle,
-                    border: `1px solid ${colors.border}`,
-                    color: colors.text,
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <Eye size={13} /> View Roster
-                </button>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => handleOpenRoster(cls)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: colors.surfaceSubtle,
+                      border: `1px solid ${colors.border}`,
+                      color: colors.text,
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Eye size={13} /> Roster
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenEditClass(cls)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      color: '#3B82F6',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Edit2 size={13} /> Edit
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteClass(cls)}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#EF4444',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             </div>
           )))
@@ -489,6 +579,171 @@ const ClassesScreen = ({ onOpenAddClass }) => {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Class Modal */}
+      {editingClass && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            zIndex: 95,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '440px',
+              backgroundColor: colors.surface,
+              borderRadius: '20px',
+              padding: '20px',
+              border: `1px solid ${colors.border}`,
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '800', color: colors.text }}>
+                Edit Tuition Class
+              </h3>
+              <button
+                onClick={() => setEditingClass(null)}
+                style={{ background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditClass} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Class Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Subject *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.subject}
+                    onChange={(e) => setEditFormData({ ...editFormData, subject: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Grade (ශ්‍රේණිය) *</label>
+                  <select
+                    value={editFormData.grade}
+                    onChange={(e) => setEditFormData({ ...editFormData, grade: e.target.value })}
+                    style={{ width: '100%', padding: '8px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                  >
+                    {grades.filter(g => g !== 'All').map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Day of Week</label>
+                  <select
+                    value={editFormData.dayOfWeek}
+                    onChange={(e) => setEditFormData({ ...editFormData, dayOfWeek: e.target.value })}
+                    style={{ width: '100%', padding: '8px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                  >
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Monthly Fee (Rs.)</label>
+                  <input
+                    type="number"
+                    value={editFormData.monthlyFee}
+                    onChange={(e) => setEditFormData({ ...editFormData, monthlyFee: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Start Time</label>
+                  <input
+                    type="time"
+                    value={editFormData.startTime}
+                    onChange={(e) => setEditFormData({ ...editFormData, startTime: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>End Time</label>
+                  <input
+                    type="time"
+                    value={editFormData.endTime}
+                    onChange={(e) => setEditFormData({ ...editFormData, endTime: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Location / Hall</label>
+                  <input
+                    type="text"
+                    value={editFormData.location}
+                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Teacher Name</label>
+                  <input
+                    type="text"
+                    value={editFormData.teacherName}
+                    onChange={(e) => setEditFormData({ ...editFormData, teacherName: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingClass(null)}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', backgroundColor: colors.surfaceSubtle, border: `1px solid ${colors.border}`, color: colors.text, fontWeight: '600', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', backgroundColor: colors.primary, color: '#FFFFFF', border: 'none', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  {savingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

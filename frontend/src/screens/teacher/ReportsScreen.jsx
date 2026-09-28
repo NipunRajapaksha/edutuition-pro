@@ -16,7 +16,7 @@ const ReportsScreen = () => {
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
 
-  const [reportType, setReportType] = useState('financial'); // 'financial' | 'student' | 'class'
+  const [reportType, setReportType] = useState('financial'); // 'financial' | 'student' | 'class' | 'attendance'
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -56,6 +56,9 @@ const ReportsScreen = () => {
       } else if (reportType === 'class' && selectedClassId) {
         const res = await api.getClassReport(selectedClassId);
         if (res?.data?.success) setReportData({ type: 'class', data: res.data.report });
+      } else if (reportType === 'attendance' && selectedClassId) {
+        const res = await api.getAttendanceReport(selectedClassId);
+        if (res?.data?.success) setReportData({ type: 'attendance', data: res.data.report });
       }
     } catch (err) {
       console.error('Error fetching report:', err);
@@ -83,6 +86,11 @@ const ReportsScreen = () => {
     } else if (reportType === 'class' && reportData?.data) {
       csvContent += 'Class Name,Subject,Grade,Enrolled Students,Average Attendance,Total Fees Collected\n';
       csvContent += `"${reportData.data.className}","${reportData.data.subject}","${reportData.data.grade}",${reportData.data.enrolledCount || 0},${reportData.data.averageAttendance || 100}%,${reportData.data.totalFeesCollected || 0}\n`;
+    } else if (reportType === 'attendance' && reportData?.data) {
+      csvContent += 'Class Name,Subject,Grade,Student Code,Student Name,Sessions Held,Present Sessions,Attendance Rate\n';
+      (reportData.data.roster || []).forEach(s => {
+        csvContent += `"${reportData.data.className}","${reportData.data.subject}","${reportData.data.grade}","${s.studentCode}","${s.studentName}",${s.totalSessions},${s.presentCount},${s.attendanceRate}%\n`;
+      });
     } else {
       csvContent += 'Report Type,Generated Date\n';
       csvContent += `${reportType},${new Date().toISOString()}\n`;
@@ -155,12 +163,11 @@ const ReportsScreen = () => {
       </div>
 
       {/* Select Report Type */}
-      <div style={{ display: 'flex', gap: '8px', backgroundColor: colors.surfaceSubtle, borderRadius: '12px', padding: '4px', border: `1px solid ${colors.border}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', backgroundColor: colors.surfaceSubtle, borderRadius: '12px', padding: '4px', border: `1px solid ${colors.border}` }}>
         <button
           onClick={() => setReportType('financial')}
           style={{
-            flex: 1,
-            padding: '8px',
+            padding: '8px 4px',
             borderRadius: '8px',
             border: 'none',
             backgroundColor: reportType === 'financial' ? colors.primary : 'transparent',
@@ -175,8 +182,7 @@ const ReportsScreen = () => {
         <button
           onClick={() => setReportType('student')}
           style={{
-            flex: 1,
-            padding: '8px',
+            padding: '8px 4px',
             borderRadius: '8px',
             border: 'none',
             backgroundColor: reportType === 'student' ? colors.primary : 'transparent',
@@ -191,8 +197,7 @@ const ReportsScreen = () => {
         <button
           onClick={() => setReportType('class')}
           style={{
-            flex: 1,
-            padding: '8px',
+            padding: '8px 4px',
             borderRadius: '8px',
             border: 'none',
             backgroundColor: reportType === 'class' ? colors.primary : 'transparent',
@@ -203,6 +208,21 @@ const ReportsScreen = () => {
           }}
         >
           Class
+        </button>
+        <button
+          onClick={() => setReportType('attendance')}
+          style={{
+            padding: '8px 4px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: reportType === 'attendance' ? colors.primary : 'transparent',
+            color: reportType === 'attendance' ? '#FFFFFF' : colors.textMuted,
+            fontWeight: '700',
+            fontSize: '12px',
+            cursor: 'pointer'
+          }}
+        >
+          Attendance
         </button>
       </div>
 
@@ -226,7 +246,7 @@ const ReportsScreen = () => {
         </div>
       )}
 
-      {reportType === 'class' && (
+      {(reportType === 'class' || reportType === 'attendance') && (
         <div style={{ backgroundColor: colors.surface, padding: '12px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
           <label style={{ fontSize: '11px', fontWeight: '700', color: colors.textMuted, display: 'block', marginBottom: '4px' }}>
             SELECT CLASS
@@ -266,7 +286,7 @@ const ReportsScreen = () => {
         >
           {/* Header */}
           <div style={{ textAlign: 'center', borderBottom: '2px solid #111827', paddingBottom: '12px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '800' }}>APEX TUITION ACADEMY</h3>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '0.5px' }}>N.A.R ACADEMY</h3>
             <div style={{ fontSize: '12px', color: '#4B5563' }}>ශිල්ප කලා උසස් අධ්‍යාපන ආයතනය</div>
             <div style={{ fontSize: '13px', fontWeight: '700', color: '#4F46E5', marginTop: '6px', textTransform: 'uppercase' }}>
               Official {reportType} Evaluation Report
@@ -282,15 +302,15 @@ const ReportsScreen = () => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px', textAlign: 'center', backgroundColor: '#F9FAFB', padding: '12px', borderRadius: '10px' }}>
                 <div>
                   <div style={{ fontSize: '10px', color: '#6B7280' }}>Total Expected</div>
-                  <div style={{ fontSize: '14px', fontWeight: '800' }}>Rs. {(reportData.data.summary.totalExpected || 0).toLocaleString()}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '800' }}>Rs. {(reportData.data.summary?.totalExpected || reportData.data.totalExpected || 0).toLocaleString()}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '10px', color: '#059669' }}>Total Collected</div>
-                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#059669' }}>Rs. {(reportData.data.summary.totalCollected || 0).toLocaleString()}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#059669' }}>Rs. {(reportData.data.summary?.totalCollected || reportData.data.totalCollected || 0).toLocaleString()}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '10px', color: '#DC2626' }}>Pending Balance</div>
-                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#DC2626' }}>Rs. {(reportData.data.summary.totalPending || 0).toLocaleString()}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#DC2626' }}>Rs. {(reportData.data.summary?.totalPending || reportData.data.totalPending || 0).toLocaleString()}</div>
                 </div>
               </div>
 
@@ -311,25 +331,29 @@ const ReportsScreen = () => {
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px', marginBottom: '14px', backgroundColor: '#F9FAFB', padding: '12px', borderRadius: '10px' }}>
                 <div>
-                  <div><strong>Student:</strong> {reportData.data.student.fullName}</div>
-                  <div><strong>ID:</strong> {reportData.data.student.studentId}</div>
-                  <div><strong>Grade:</strong> {reportData.data.student.grade}</div>
+                  <div><strong>Student:</strong> {reportData.data.student?.fullName || reportData.data.studentName}</div>
+                  <div><strong>ID:</strong> {reportData.data.student?.studentId || reportData.data.studentId}</div>
+                  <div><strong>Grade:</strong> {reportData.data.student?.grade || reportData.data.grade}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div><strong>Attendance:</strong> {reportData.data.summary.attendancePercentage}%</div>
-                  <div><strong>Exam Average:</strong> {reportData.data.summary.averageExamMark}%</div>
-                  <div><strong>Fee Balance:</strong> Rs. {reportData.data.summary.feeBalance}</div>
+                  <div><strong>Attendance:</strong> {reportData.data.summary?.attendancePercentage || reportData.data.attendanceSummary?.attendanceRate || 0}%</div>
+                  <div><strong>Exam Average:</strong> {reportData.data.summary?.averageExamMark || 0}%</div>
+                  <div><strong>Fee Balance:</strong> Rs. {reportData.data.summary?.feeBalance || reportData.data.feeSummary?.balance || 0}</div>
                 </div>
               </div>
 
               <div style={{ fontSize: '12px', fontWeight: '800', marginBottom: '8px' }}>Exam Scores:</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px' }}>
-                {(reportData.data.exams || []).map((ex, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
-                    <span>{ex.examName} ({ex.subject})</span>
-                    <span><strong>{ex.marksObtained}/{ex.totalMarks}</strong> ({ex.percentage}%, Grade {ex.grade}, Rank {ex.rank})</span>
-                  </div>
-                ))}
+                {(reportData.data.exams || []).length === 0 ? (
+                  <div style={{ color: '#9CA3AF', fontStyle: 'italic', padding: '8px 0' }}>No exam marks recorded yet.</div>
+                ) : (
+                  (reportData.data.exams || []).map((ex, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
+                      <span>{ex.examName} ({ex.subject})</span>
+                      <span><strong>{ex.marksObtained}/{ex.totalMarks}</strong> ({ex.percentage}%, Grade {ex.grade}, Rank {ex.rank})</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -338,19 +362,56 @@ const ReportsScreen = () => {
           {reportData.type === 'class' && (
             <div>
               <div style={{ fontSize: '13px', fontWeight: '800', marginBottom: '4px' }}>
-                {reportData.data.class.name} ({reportData.data.class.subject})
+                {reportData.data.className || reportData.data.class?.name} ({reportData.data.subject || reportData.data.class?.subject})
               </div>
               <div style={{ fontSize: '11px', color: '#6B7280', marginBottom: '12px' }}>
-                Total Enrolled Students: {reportData.data.studentCount} • Fee Collected: Rs. {Number(reportData.data.totalCollected).toLocaleString()}
+                Grade: {reportData.data.grade || reportData.data.class?.grade} • Total Enrolled Students: {reportData.data.studentCount || reportData.data.enrolledCount || 0} • Fee Collected: Rs. {Number(reportData.data.totalCollected || reportData.data.totalFeesCollected || 0).toLocaleString()}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px' }}>
                 {(reportData.data.students || []).map((s, i) => (
-                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
-                    <span>{i + 1}. {s.name} ({s.code})</span>
-                    <span style={{ color: '#4F46E5' }}>{s.phone}</span>
+                  <div key={s.id || s._id || i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
+                    <span>{i + 1}. {s.name || s.fullName} ({s.code || s.studentId})</span>
+                    <span style={{ color: '#4F46E5' }}>{s.phone || 'N/A'}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* ATTENDANCE REPORT VIEW */}
+          {reportData.type === 'attendance' && (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px', textAlign: 'center', backgroundColor: '#F9FAFB', padding: '12px', borderRadius: '10px' }}>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#6B7280' }}>Total Students</div>
+                  <div style={{ fontSize: '14px', fontWeight: '800' }}>{reportData.data.totalStudents || 0}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#4F46E5' }}>Sessions Held</div>
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#4F46E5' }}>{reportData.data.totalSessionsHeld || 0}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#059669' }}>Avg Attendance</div>
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: '#059669' }}>{reportData.data.averageAttendanceRate || 0}%</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '12px', fontWeight: '800', marginBottom: '8px' }}>Student Attendance Roster:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px' }}>
+                {(reportData.data.roster || []).length === 0 ? (
+                  <div style={{ color: '#9CA3AF', fontStyle: 'italic', padding: '8px 0' }}>No students in this class.</div>
+                ) : (
+                  (reportData.data.roster || []).map((s, i) => (
+                    <div key={s.studentId || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', borderBottom: '1px solid #F3F4F6' }}>
+                      <span>{i + 1}. {s.studentName} ({s.studentCode})</span>
+                      <span>
+                        <span style={{ color: '#6B7280', marginRight: '8px' }}>{s.presentCount}/{s.totalSessions} Sessions</span>
+                        <strong style={{ color: s.attendanceRate >= 75 ? '#059669' : '#DC2626' }}>{s.attendanceRate}%</strong>
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

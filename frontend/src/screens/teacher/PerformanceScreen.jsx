@@ -59,11 +59,11 @@ const PerformanceScreen = () => {
   }, [selectedStudentId]);
 
   const metrics = performanceData?.metrics || {
-    attendanceRate: 100,
-    hwCompletionRate: 100,
-    averageMark: 85,
-    latestRank: 1,
-    feeStatus: 'Fully Paid'
+    attendanceRate: 0,
+    hwCompletionRate: 0,
+    averageMark: 0,
+    latestRank: 0,
+    feeStatus: 'Active'
   };
 
   return (

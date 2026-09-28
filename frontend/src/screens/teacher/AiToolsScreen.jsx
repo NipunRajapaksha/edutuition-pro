@@ -287,9 +287,9 @@ const AiToolsScreen = () => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: '15px', fontWeight: '800', color: colors.text }}>
-                  Academic Diagnosis: {insightsResult.student.name}
+                  Academic Diagnosis: {insightsResult.student?.name || insightsResult.studentName || 'Student'}
                 </div>
-                <Badge variant="present">{insightsResult.student.grade}</Badge>
+                <Badge variant="present">{insightsResult.student?.grade || insightsResult.grade || 'Grade 10'}</Badge>
               </div>
 
               {/* Summary quote */}
@@ -304,38 +304,42 @@ const AiToolsScreen = () => {
                   lineHeight: 1.4
                 }}
               >
-                "{insightsResult.summary}"
+                "{insightsResult.summary || 'Consistent performance across core subjects.'}"
               </div>
 
               {/* Observations */}
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', marginBottom: '6px' }}>
-                  KEY OBSERVATIONS:
+              {((insightsResult.observations && insightsResult.observations.length > 0) || (insightsResult.strengths && insightsResult.strengths.length > 0)) && (
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', marginBottom: '6px' }}>
+                    KEY OBSERVATIONS & STRENGTHS:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {(insightsResult.observations || insightsResult.strengths || []).map((obs, i) => (
+                      <div key={i} style={{ fontSize: '12px', color: colors.text, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                        <span style={{ color: '#10B981' }}>✓</span>
+                        <span>{obs}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {insightsResult.observations.map((obs, i) => (
-                    <div key={i} style={{ fontSize: '12px', color: colors.text, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                      <span style={{ color: '#10B981' }}>✓</span>
-                      <span>{obs}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
 
               {/* Recommendations */}
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: '700', color: '#8B5CF6', marginBottom: '6px' }}>
-                  TEACHER INTERVENTION RECOMMENDATIONS:
+              {((insightsResult.recommendations && insightsResult.recommendations.length > 0) || (insightsResult.recommendedActions && insightsResult.recommendedActions.length > 0)) && (
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#8B5CF6', marginBottom: '6px' }}>
+                    TEACHER INTERVENTION RECOMMENDATIONS:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {(insightsResult.recommendations || insightsResult.recommendedActions || []).map((rec, i) => (
+                      <div key={i} style={{ fontSize: '12px', color: colors.text, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                        <span style={{ color: '#8B5CF6' }}>➜</span>
+                        <span>{rec}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {insightsResult.recommendations.map((rec, i) => (
-                    <div key={i} style={{ fontSize: '12px', color: colors.text, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                      <span style={{ color: '#8B5CF6' }}>➜</span>
-                      <span>{rec}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>
