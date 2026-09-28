@@ -13,7 +13,8 @@ import {
   DollarSign,
   X,
   CheckCircle,
-  Eye
+  Eye,
+  Search
 } from 'lucide-react';
 
 const ClassesScreen = ({ onOpenAddClass }) => {
@@ -24,22 +25,45 @@ const ClassesScreen = ({ onOpenAddClass }) => {
   const [timetable, setTimetable] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'timetable'
   const [loading, setLoading] = useState(true);
+  const [selectedGrade, setSelectedGrade] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Class Roster Modal
   const [selectedClassRoster, setSelectedClassRoster] = useState(null);
   const [loadingRoster, setLoadingRoster] = useState(false);
 
+  const grades = [
+    'All',
+    'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
+    'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10',
+    'Grade 11', 'Grade 12', 'Grade 13', 'A/L', 'A/L Revision'
+  ];
+
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const [clsRes, timeRes] = await Promise.all([
+      const [clsRes, timeRes] = await Promise.allSettled([
         api.getClasses(),
         api.getTimetable()
       ]);
-      if (clsRes.data.success) setClasses(clsRes.data.data);
-      if (timeRes.data.success) setTimetable(timeRes.data.data);
+
+      let loadedClasses = [];
+      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success) {
+        loadedClasses = clsRes.value.data.data;
+        localStorage.setItem('edutuition_classes', JSON.stringify(loadedClasses));
+      } else {
+        const stored = localStorage.getItem('edutuition_classes');
+        if (stored) loadedClasses = JSON.parse(stored);
+      }
+      setClasses(loadedClasses);
+
+      if (timeRes.status === 'fulfilled' && timeRes.value?.data?.success) {
+        setTimetable(timeRes.value.data.data);
+      }
     } catch (err) {
       console.error('Error fetching classes:', err);
+      const stored = localStorage.getItem('edutuition_classes');
+      if (stored) setClasses(JSON.parse(stored));
     } finally {
       setLoading(false);
     }
@@ -48,6 +72,15 @@ const ClassesScreen = ({ onOpenAddClass }) => {
   useEffect(() => {
     fetchClasses();
   }, []);
+
+  const filteredClasses = classes.filter(cls => {
+    const matchesGrade = selectedGrade === 'All' || cls.grade === selectedGrade || (cls.grade && cls.grade.includes(selectedGrade));
+    const matchesSearch = !searchQuery.trim() || 
+      cls.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cls.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cls.teacherName?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesGrade && matchesSearch;
+  });
 
   const handleOpenRoster = async (cls) => {
     setLoadingRoster(true);
@@ -134,13 +167,82 @@ const ClassesScreen = ({ onOpenAddClass }) => {
         </button>
       </div>
 
+      {/* Search & Grade Filter (Cards View) */}
+      {viewMode === 'list' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: colors.surface,
+              borderRadius: '12px',
+              padding: '0 12px',
+              border: `1px solid ${colors.border}`,
+              gap: '8px'
+            }}
+          >
+            <Search size={16} color={colors.textMuted} />
+            <input
+              type="text"
+              placeholder="Search by class name, subject, or teacher..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 0',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: colors.text,
+                fontSize: '13px',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '6px',
+              overflowX: 'auto',
+              paddingBottom: '4px',
+              scrollbarWidth: 'none'
+            }}
+          >
+            {grades.map(grade => (
+              <button
+                key={grade}
+                onClick={() => setSelectedGrade(grade)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  backgroundColor: selectedGrade === grade ? colors.primary : colors.surfaceSubtle,
+                  color: selectedGrade === grade ? '#FFFFFF' : colors.textMuted,
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer'
+                }}
+              >
+                {grade}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: '30px', color: colors.textMuted, fontSize: '13px' }}>
           {t('loading')}
         </div>
       ) : viewMode === 'list' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {classes.map(cls => (
+          {filteredClasses.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px', color: colors.textMuted, fontSize: '13px', backgroundColor: colors.surface, borderRadius: '16px', border: `1px solid ${colors.border}` }}>
+              No classes found matching your criteria.
+            </div>
+          ) : (
+            filteredClasses.map(cls => (
             <div
               key={cls._id || cls.id}
               style={{
@@ -227,7 +329,8 @@ const ClassesScreen = ({ onOpenAddClass }) => {
                 </button>
               </div>
             </div>
-          ))}
+          )))
+        }
         </div>
       ) : (
         /* Timetable View */

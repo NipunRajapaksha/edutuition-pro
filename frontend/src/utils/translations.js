@@ -1,9 +1,10 @@
 export const translations = {
   en: {
     // General & App Branding
-    appName: "EduTuition Pro",
-    instituteDefault: "Apex Tuition Academy",
+    appName: "N.A.R Academy",
+    instituteDefault: "N.A.R Academy",
     tagline: "Modern Tuition Class Management",
+
     welcome: "Welcome back",
     roleTeacher: "Teacher / Admin",
     roleStudent: "Student",
@@ -184,9 +185,10 @@ export const translations = {
 
   si: {
     // General & App Branding
-    appName: "ශිල්ප ඇකඩමි (EduTuition)",
-    instituteDefault: "ශිල්ප කලා උසස් අධ්‍යාපන ආයතනය",
+    appName: "N.A.R Academy",
+    instituteDefault: "N.A.R Academy (උසස් අධ්‍යාපන ආයතනය)",
     tagline: "නවීන උපකාරක පන්ති කළමනාකරණ පද්ධතිය",
+
     welcome: "නැවත සාදරයෙන් පිළිගනිමු",
     roleTeacher: "ගුරුතුමා / පරිපාලක",
     roleStudent: "ශිෂ්‍යයා",

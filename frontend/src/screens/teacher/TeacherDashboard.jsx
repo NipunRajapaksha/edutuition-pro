@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { api } from '../../api/client';
@@ -26,18 +27,34 @@ import {
 } from 'lucide-react';
 
 const TeacherDashboard = ({ onNavigate, onOpenQuickAction, onViewReceipt }) => {
+  const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
 
   const [stats, setStats] = useState(null);
+  const [totalStudentsCount, setTotalStudentsCount] = useState(0);
+  const [activeClassesCount, setActiveClassesCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const res = await api.getDashboardStats();
-      if (res.data.success) {
-        setStats(res.data.data);
+      const [statsRes, stuRes, clsRes] = await Promise.allSettled([
+        api.getDashboardStats(),
+        api.getStudents(),
+        api.getClasses()
+      ]);
+
+      if (statsRes.status === 'fulfilled' && statsRes.value?.data?.success) {
+        setStats(statsRes.value.data.data);
+      }
+
+      if (stuRes.status === 'fulfilled' && stuRes.value?.data?.success) {
+        setTotalStudentsCount(stuRes.value.data.data.length);
+      }
+
+      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success) {
+        setActiveClassesCount(clsRes.value.data.data.length);
       }
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
@@ -58,14 +75,14 @@ const TeacherDashboard = ({ onNavigate, onOpenQuickAction, onViewReceipt }) => {
     );
   }
 
-  const metrics = stats?.metrics || {
-    totalStudents: 125,
-    activeClasses: 5,
-    todayClassesCount: 2,
-    presentToday: 108,
-    pendingFees: 45000,
-    homeworkPending: 3,
-    upcomingExamsCount: 2
+  const metrics = {
+    totalStudents: totalStudentsCount || stats?.metrics?.totalStudents || 0,
+    activeClasses: activeClassesCount || stats?.metrics?.activeClasses || 0,
+    todayClassesCount: stats?.metrics?.todayClassesCount || 0,
+    presentToday: stats?.metrics?.presentToday || 0,
+    pendingFees: stats?.metrics?.pendingFees || 0,
+    homeworkPending: stats?.metrics?.homeworkPending || 0,
+    upcomingExamsCount: stats?.metrics?.upcomingExamsCount || 0
   };
 
   return (
@@ -84,10 +101,10 @@ const TeacherDashboard = ({ onNavigate, onOpenQuickAction, onViewReceipt }) => {
       >
         <div style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#A5B4FC' }}>
-            {t('instituteDefault')}
+            N.A.R Academy
           </div>
           <h2 style={{ fontSize: '20px', fontWeight: '800', marginTop: '2px' }}>
-            {t('welcome')}, Master Perera 👋
+            {t('welcome')}, {user?.name || 'Administrator'} 👋
           </h2>
           <p style={{ fontSize: '12px', color: '#C7D2FE', marginTop: '4px' }}>
             {metrics.todayClassesCount} classes scheduled for today. {metrics.presentToday} students present.
@@ -98,6 +115,7 @@ const TeacherDashboard = ({ onNavigate, onOpenQuickAction, onViewReceipt }) => {
       {/* 6 Quick Action Buttons */}
       <div>
         <div style={{ fontSize: '13px', fontWeight: '700', color: colors.text, marginBottom: '10px' }}>
+
           {t('quickActions')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>

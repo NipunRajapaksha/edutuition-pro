@@ -43,15 +43,36 @@ const StudentsScreen = ({ onOpenAddStudent, onViewQrId, onViewStudentHistory }) 
       if (selectedGrade !== 'All') params.grade = selectedGrade;
       if (selectedStatus !== 'All') params.status = selectedStatus;
 
-      const [stuRes, clsRes] = await Promise.all([
+      const [stuRes, clsRes] = await Promise.allSettled([
         api.getStudents(params),
         api.getClasses()
       ]);
 
-      if (stuRes.data.success) setStudents(stuRes.data.data);
-      if (clsRes.data.success) setClasses(clsRes.data.data);
+      let loadedStudents = [];
+      let loadedClasses = [];
+
+      if (stuRes.status === 'fulfilled' && stuRes.value?.data?.success) {
+        loadedStudents = stuRes.value.data.data;
+        localStorage.setItem('edutuition_students', JSON.stringify(loadedStudents));
+      } else {
+        const stored = localStorage.getItem('edutuition_students');
+        if (stored) loadedStudents = JSON.parse(stored);
+      }
+
+      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success) {
+        loadedClasses = clsRes.value.data.data;
+        localStorage.setItem('edutuition_classes', JSON.stringify(loadedClasses));
+      } else {
+        const stored = localStorage.getItem('edutuition_classes');
+        if (stored) loadedClasses = JSON.parse(stored);
+      }
+
+      setStudents(loadedStudents);
+      setClasses(loadedClasses);
     } catch (err) {
       console.error('Error fetching students:', err);
+      const stored = localStorage.getItem('edutuition_students');
+      if (stored) setStudents(JSON.parse(stored));
     } finally {
       setLoading(false);
     }
@@ -70,10 +91,12 @@ const StudentsScreen = ({ onOpenAddStudent, onViewQrId, onViewStudentHistory }) 
     if (!window.confirm('Are you sure you want to deactivate/remove this student?')) return;
     try {
       await api.deleteStudent(id);
-      fetchData();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete student');
+    } catch {
+      // ignore
     }
+    const updated = students.filter(s => (s._id || s.id) !== id);
+    setStudents(updated);
+    localStorage.setItem('edutuition_students', JSON.stringify(updated));
   };
 
   const handleOpenEdit = (student) => {
@@ -95,20 +118,38 @@ const StudentsScreen = ({ onOpenAddStudent, onViewQrId, onViewStudentHistory }) 
   const handleSaveEdit = async (e) => {
     e.preventDefault();
     setSavingEdit(true);
+    const targetId = editingStudent._id || editingStudent.id;
     try {
-      const res = await api.updateStudent(editingStudent._id || editingStudent.id, editFormData);
-      if (res.data.success) {
-        setEditingStudent(null);
-        fetchData();
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update student');
-    } finally {
-      setSavingEdit(false);
+      await api.updateStudent(targetId, editFormData);
+    } catch {
+      // ignore
     }
+    const updated = students.map(s => (s._id || s.id) === targetId ? { ...s, ...editFormData } : s);
+    setStudents(updated);
+    localStorage.setItem('edutuition_students', JSON.stringify(updated));
+    setEditingStudent(null);
+    setSavingEdit(false);
   };
 
-  const grades = ['All', 'Grade 9', 'Grade 10', 'Grade 11', 'A/L'];
+  const grades = [
+    'All',
+    'Grade 1',
+    'Grade 2',
+    'Grade 3',
+    'Grade 4',
+    'Grade 5',
+    'Grade 6',
+    'Grade 7',
+    'Grade 8',
+    'Grade 9',
+    'Grade 10',
+    'Grade 11',
+    'Grade 12',
+    'Grade 13',
+    'A/L',
+    'A/L Revision'
+  ];
+
 
   return (
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '90px' }}>

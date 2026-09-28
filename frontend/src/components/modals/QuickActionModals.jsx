@@ -103,21 +103,32 @@ export const AddStudentModal = ({ onClose, onSuccess }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Grade *</label>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Grade (ශ්‍රේණිය) *</label>
               <select
                 value={formData.grade}
                 onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
               >
-                <option>Grade 9</option>
-                <option>Grade 10</option>
-                <option>Grade 11</option>
-                <option>A/L</option>
+                <option value="Grade 1">Grade 1 (1 ශ්‍රේණිය)</option>
+                <option value="Grade 2">Grade 2 (2 ශ්‍රේණිය)</option>
+                <option value="Grade 3">Grade 3 (3 ශ්‍රේණිය)</option>
+                <option value="Grade 4">Grade 4 (4 ශ්‍රේණිය)</option>
+                <option value="Grade 5">Grade 5 (5 ශ්‍රේණිය / ශිෂ්‍යත්වය)</option>
+                <option value="Grade 6">Grade 6 (6 ශ්‍රේණිය)</option>
+                <option value="Grade 7">Grade 7 (7 ශ්‍රේණිය)</option>
+                <option value="Grade 8">Grade 8 (8 ශ්‍රේණිය)</option>
+                <option value="Grade 9">Grade 9 (9 ශ්‍රේණිය)</option>
+                <option value="Grade 10">Grade 10 (10 ශ්‍රේණිය)</option>
+                <option value="Grade 11">Grade 11 (11 ශ්‍රේණිය / O/L)</option>
+                <option value="Grade 12">Grade 12 (12 ශ්‍රේණිය / A/L)</option>
+                <option value="Grade 13">Grade 13 (13 ශ්‍රේණිය / A/L)</option>
+                <option value="A/L Revision">A/L Revision (උසස් පෙළ පුනරීක්ෂණ)</option>
               </select>
             </div>
             <div>
               <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Student Phone</label>
               <input
+
                 type="text"
                 placeholder="077xxxxxxx"
                 value={formData.phone}
@@ -758,19 +769,30 @@ export const AddClassModal = ({ onClose, onSuccess }) => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Grade *</label>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>Grade (ශ්‍රේණිය) *</label>
               <select
                 value={formData.grade}
                 onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
                 style={{ width: '100%', padding: '8px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.surfaceSubtle, color: colors.text, fontSize: '12px' }}
               >
-                <option>Grade 9</option>
-                <option>Grade 10</option>
-                <option>Grade 11</option>
-                <option>A/L</option>
+                <option value="Grade 1">Grade 1 (1 ශ්‍රේණිය)</option>
+                <option value="Grade 2">Grade 2 (2 ශ්‍රේණිය)</option>
+                <option value="Grade 3">Grade 3 (3 ශ්‍රේණිය)</option>
+                <option value="Grade 4">Grade 4 (4 ශ්‍රේණිය)</option>
+                <option value="Grade 5">Grade 5 (5 ශ්‍රේණිය / ශිෂ්‍යත්වය)</option>
+                <option value="Grade 6">Grade 6 (6 ශ්‍රේණිය)</option>
+                <option value="Grade 7">Grade 7 (7 ශ්‍රේණිය)</option>
+                <option value="Grade 8">Grade 8 (8 ශ්‍රේණිය)</option>
+                <option value="Grade 9">Grade 9 (9 ශ්‍රේණිය)</option>
+                <option value="Grade 10">Grade 10 (10 ශ්‍රේණිය)</option>
+                <option value="Grade 11">Grade 11 (11 ශ්‍රේණිය / O/L)</option>
+                <option value="Grade 12">Grade 12 (12 ශ්‍රේණිය / A/L)</option>
+                <option value="Grade 13">Grade 13 (13 ශ්‍රේණිය / A/L)</option>
+                <option value="A/L Revision">A/L Revision (උසස් පෙළ පුනරීක්ෂණ)</option>
               </select>
             </div>
           </div>
+
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
