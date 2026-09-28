@@ -43,36 +43,75 @@ const StudentsScreen = ({ onOpenAddStudent, onViewQrId, onViewStudentHistory }) 
       if (selectedGrade !== 'All') params.grade = selectedGrade;
       if (selectedStatus !== 'All') params.status = selectedStatus;
 
+      let localStudents = [];
+      try {
+        const stored = localStorage.getItem('edutuition_students');
+        if (stored) localStudents = JSON.parse(stored);
+      } catch (e) {}
+
+      let localClasses = [];
+      try {
+        const stored = localStorage.getItem('edutuition_classes');
+        if (stored) localClasses = JSON.parse(stored);
+      } catch (e) {}
+
       const [stuRes, clsRes] = await Promise.allSettled([
         api.getStudents(params),
         api.getClasses()
       ]);
 
-      let loadedStudents = [];
-      let loadedClasses = [];
-
-      if (stuRes.status === 'fulfilled' && stuRes.value?.data?.success) {
-        loadedStudents = stuRes.value.data.data;
-        localStorage.setItem('edutuition_students', JSON.stringify(loadedStudents));
-      } else {
-        const stored = localStorage.getItem('edutuition_students');
-        if (stored) loadedStudents = JSON.parse(stored);
+      let serverStudents = [];
+      if (stuRes.status === 'fulfilled' && stuRes.value?.data?.success && Array.isArray(stuRes.value.data.data)) {
+        serverStudents = stuRes.value.data.data;
       }
 
-      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success) {
-        loadedClasses = clsRes.value.data.data;
-        localStorage.setItem('edutuition_classes', JSON.stringify(loadedClasses));
-      } else {
-        const stored = localStorage.getItem('edutuition_classes');
-        if (stored) loadedClasses = JSON.parse(stored);
+      let serverClasses = [];
+      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success && Array.isArray(clsRes.value.data.data)) {
+        serverClasses = clsRes.value.data.data;
       }
 
-      setStudents(loadedStudents);
-      setClasses(loadedClasses);
+      // Merge server & local without loss
+      const studentMap = new Map();
+      serverStudents.forEach(s => studentMap.set(s._id || s.id || s.studentId, s));
+      localStudents.forEach(s => studentMap.set(s._id || s.id || s.studentId, s));
+      let mergedStudents = Array.from(studentMap.values());
+
+      const classMap = new Map();
+      serverClasses.forEach(c => classMap.set(c._id || c.id || c.name, c));
+      localClasses.forEach(c => classMap.set(c._id || c.id || c.name, c));
+      const mergedClasses = Array.from(classMap.values());
+
+      // Client-side filter fallback if params were applied
+      if (selectedGrade !== 'All') {
+        mergedStudents = mergedStudents.filter(s => s.grade === selectedGrade || (s.grade && s.grade.includes(selectedGrade)));
+      }
+      if (selectedStatus !== 'All') {
+        mergedStudents = mergedStudents.filter(s => s.status === selectedStatus);
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        mergedStudents = mergedStudents.filter(s =>
+          (s.fullName && s.fullName.toLowerCase().includes(q)) ||
+          (s.studentId && s.studentId.toLowerCase().includes(q)) ||
+          (s.phone && s.phone.includes(q)) ||
+          (s.school && s.school.toLowerCase().includes(q))
+        );
+      }
+
+      setStudents(mergedStudents);
+      setClasses(mergedClasses);
+
+      // Persist full base list if no filters
+      if (selectedGrade === 'All' && selectedStatus === 'All' && !searchQuery.trim()) {
+        localStorage.setItem('edutuition_students', JSON.stringify(Array.from(studentMap.values())));
+        localStorage.setItem('edutuition_classes', JSON.stringify(mergedClasses));
+      }
     } catch (err) {
       console.error('Error fetching students:', err);
-      const stored = localStorage.getItem('edutuition_students');
-      if (stored) setStudents(JSON.parse(stored));
+      try {
+        const stored = localStorage.getItem('edutuition_students');
+        if (stored) setStudents(JSON.parse(stored));
+      } catch {}
     } finally {
       setLoading(false);
     }

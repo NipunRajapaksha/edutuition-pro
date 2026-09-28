@@ -39,6 +39,19 @@ const TeacherDashboard = ({ onNavigate, onOpenQuickAction, onViewReceipt }) => {
   const fetchStats = async () => {
     try {
       setLoading(true);
+
+      let localStudents = [];
+      try {
+        const stored = localStorage.getItem('edutuition_students');
+        if (stored) localStudents = JSON.parse(stored);
+      } catch (e) {}
+
+      let localClasses = [];
+      try {
+        const stored = localStorage.getItem('edutuition_classes');
+        if (stored) localClasses = JSON.parse(stored);
+      } catch (e) {}
+
       const [statsRes, stuRes, clsRes] = await Promise.allSettled([
         api.getDashboardStats(),
         api.getStudents(),
@@ -49,13 +62,26 @@ const TeacherDashboard = ({ onNavigate, onOpenQuickAction, onViewReceipt }) => {
         setStats(statsRes.value.data.data);
       }
 
-      if (stuRes.status === 'fulfilled' && stuRes.value?.data?.success) {
-        setTotalStudentsCount(stuRes.value.data.data.length);
+      let serverStudents = [];
+      if (stuRes.status === 'fulfilled' && stuRes.value?.data?.success && Array.isArray(stuRes.value.data.data)) {
+        serverStudents = stuRes.value.data.data;
       }
 
-      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success) {
-        setActiveClassesCount(clsRes.value.data.data.length);
+      let serverClasses = [];
+      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success && Array.isArray(clsRes.value.data.data)) {
+        serverClasses = clsRes.value.data.data;
       }
+
+      const studentMap = new Map();
+      serverStudents.forEach(s => studentMap.set(s._id || s.id || s.studentId, s));
+      localStudents.forEach(s => studentMap.set(s._id || s.id || s.studentId, s));
+
+      const classMap = new Map();
+      serverClasses.forEach(c => classMap.set(c._id || c.id || c.name, c));
+      localClasses.forEach(c => classMap.set(c._id || c.id || c.name, c));
+
+      setTotalStudentsCount(studentMap.size);
+      setActiveClassesCount(classMap.size);
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
     } finally {

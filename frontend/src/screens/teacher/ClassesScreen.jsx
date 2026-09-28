@@ -42,28 +42,40 @@ const ClassesScreen = ({ onOpenAddClass }) => {
   const fetchClasses = async () => {
     try {
       setLoading(true);
+
+      let localClasses = [];
+      try {
+        const stored = localStorage.getItem('edutuition_classes');
+        if (stored) localClasses = JSON.parse(stored);
+      } catch (e) {}
+
       const [clsRes, timeRes] = await Promise.allSettled([
         api.getClasses(),
         api.getTimetable()
       ]);
 
-      let loadedClasses = [];
-      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success) {
-        loadedClasses = clsRes.value.data.data;
-        localStorage.setItem('edutuition_classes', JSON.stringify(loadedClasses));
-      } else {
-        const stored = localStorage.getItem('edutuition_classes');
-        if (stored) loadedClasses = JSON.parse(stored);
+      let serverClasses = [];
+      if (clsRes.status === 'fulfilled' && clsRes.value?.data?.success && Array.isArray(clsRes.value.data.data)) {
+        serverClasses = clsRes.value.data.data;
       }
-      setClasses(loadedClasses);
+
+      const classMap = new Map();
+      serverClasses.forEach(c => classMap.set(c._id || c.id || c.name, c));
+      localClasses.forEach(c => classMap.set(c._id || c.id || c.name, c));
+      const mergedClasses = Array.from(classMap.values());
+
+      setClasses(mergedClasses);
+      localStorage.setItem('edutuition_classes', JSON.stringify(mergedClasses));
 
       if (timeRes.status === 'fulfilled' && timeRes.value?.data?.success) {
         setTimetable(timeRes.value.data.data);
       }
     } catch (err) {
       console.error('Error fetching classes:', err);
-      const stored = localStorage.getItem('edutuition_classes');
-      if (stored) setClasses(JSON.parse(stored));
+      try {
+        const stored = localStorage.getItem('edutuition_classes');
+        if (stored) setClasses(JSON.parse(stored));
+      } catch {}
     } finally {
       setLoading(false);
     }

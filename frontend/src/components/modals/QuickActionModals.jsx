@@ -33,39 +33,47 @@ export const AddStudentModal = ({ onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    let createdStudent = null;
     try {
       const res = await api.createStudent(formData);
-      if (res?.data?.success) {
-        confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
-        onSuccess(res.data.data);
-        onClose();
-        return;
+      if (res?.data?.success && res.data.data) {
+        createdStudent = res.data.data;
       }
     } catch {
       console.warn('Backend student creation failed, using client storage fallback.');
     }
 
-    // Client resilience fallback
-    const studentId = `STU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
-    const newStudent = {
-      _id: `stu_${Date.now()}`,
-      studentId,
-      fullName: formData.fullName,
-      grade: formData.grade,
-      phone: formData.phone || '',
-      email: formData.email || '',
-      school: formData.school || '',
-      parentName: formData.parentName || '',
-      parentPhone: formData.parentPhone || '',
-      address: formData.address || '',
-      enrolledClasses: formData.enrolledClasses || [],
-      status: 'active',
-      attendanceRate: 100,
-      photo: `https://api.dicebear.com/7.x/bottts/png?seed=${encodeURIComponent(studentId)}`
-    };
+    if (!createdStudent) {
+      const studentId = `STU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+      createdStudent = {
+        _id: `stu_${Date.now()}`,
+        studentId,
+        fullName: formData.fullName,
+        grade: formData.grade,
+        phone: formData.phone || '',
+        email: formData.email || '',
+        school: formData.school || '',
+        parentName: formData.parentName || '',
+        parentPhone: formData.parentPhone || '',
+        address: formData.address || '',
+        enrolledClasses: formData.enrolledClasses || [],
+        status: 'active',
+        attendanceRate: 100,
+        photo: `https://api.dicebear.com/7.x/bottts/png?seed=${encodeURIComponent(studentId)}`
+      };
+    }
+
+    try {
+      const existingRaw = localStorage.getItem('edutuition_students');
+      const existing = existingRaw ? JSON.parse(existingRaw) : [];
+      const updated = [createdStudent, ...existing.filter(s => (s._id || s.id) !== (createdStudent._id || createdStudent.id))];
+      localStorage.setItem('edutuition_students', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Error writing student to localStorage:', err);
+    }
 
     confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
-    onSuccess(newStudent);
+    onSuccess(createdStudent);
     onClose();
     setLoading(false);
   };
@@ -701,36 +709,46 @@ export const AddClassModal = ({ onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    let createdClass = null;
     try {
       const res = await api.createClass(formData);
-      if (res?.data?.success) {
-        onSuccess(res.data.data);
-        onClose();
-        return;
+      if (res?.data?.success && res.data.data) {
+        createdClass = res.data.data;
       }
     } catch {
       console.warn('Backend class creation failed, using client storage fallback.');
     }
 
-    // Client resilience fallback
-    const newClass = {
-      _id: `cls_${Date.now()}`,
-      name: formData.name,
-      subject: formData.subject,
-      grade: formData.grade,
-      teacherName: formData.teacherName || 'Master N. Perera',
-      location: formData.location || 'Main Hall',
-      dayOfWeek: formData.dayOfWeek,
-      startTime: formData.startTime,
-      endTime: formData.endTime,
-      monthlyFee: Number(formData.monthlyFee),
-      maxStudents: Number(formData.maxStudents || 50),
-      status: 'active',
-      color: formData.color || '#3B82F6',
-      enrolledCount: 0,
-      availableSeats: Number(formData.maxStudents || 50)
-    };
-    onSuccess(newClass);
+    if (!createdClass) {
+      createdClass = {
+        _id: `cls_${Date.now()}`,
+        name: formData.name,
+        subject: formData.subject,
+        grade: formData.grade,
+        teacherName: formData.teacherName || 'Master N. Perera',
+        location: formData.location || 'Main Hall',
+        dayOfWeek: formData.dayOfWeek,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        monthlyFee: Number(formData.monthlyFee),
+        maxStudents: Number(formData.maxStudents || 50),
+        status: 'active',
+        color: formData.color || '#3B82F6',
+        enrolledCount: 0,
+        availableSeats: Number(formData.maxStudents || 50)
+      };
+    }
+
+    try {
+      const existingRaw = localStorage.getItem('edutuition_classes');
+      const existing = existingRaw ? JSON.parse(existingRaw) : [];
+      const updated = [createdClass, ...existing.filter(c => (c._id || c.id) !== (createdClass._id || createdClass.id))];
+      localStorage.setItem('edutuition_classes', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Error writing class to localStorage:', err);
+    }
+
+    onSuccess(createdClass);
     onClose();
     setLoading(false);
   };

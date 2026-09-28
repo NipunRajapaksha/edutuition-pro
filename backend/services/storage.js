@@ -6,8 +6,15 @@ const DATA_DIR = process.env.VERCEL ? '/tmp/data' : path.join(__dirname, '../dat
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const SEED_FILE = path.join(__dirname, '../data/db.json');
 
-// In-memory cache
-let dataCache = null;
+// Try to require bundled data so esbuild/Vercel includes it in the bundle
+let bundledSeedData = null;
+try {
+  bundledSeedData = require('../data/db.json');
+} catch (e) {
+  try {
+    bundledSeedData = require('../seed/seedData');
+  } catch (err) {}
+}
 
 const defaultStructure = {
   users: [],
@@ -24,10 +31,10 @@ const defaultStructure = {
   notifications: [],
   calendarEvents: [],
   settings: {
-    instituteName: 'Apex Tuition Academy (ශිල්ප කලා අධ්‍යාපන ආයතනය)',
+    instituteName: 'N.A.R Academy (උසස් අධ්‍යාපන ආයතනය)',
     currency: 'Rs.',
     phone: '+94 77 123 4567',
-    email: 'info@apextuition.lk',
+    email: 'info@naracademy.lk',
     address: '142 High Level Road, Nugegoda, Sri Lanka',
     minAttendanceAlertPercent: 75,
     enableAiAssistant: true,
@@ -54,15 +61,14 @@ function loadDatabase() {
     }
   }
 
-  // If on Vercel and DB_FILE in /tmp doesn't exist yet, seed from bundled file
-  if (process.env.VERCEL && fs.existsSync(SEED_FILE)) {
+  // If DB_FILE in /tmp doesn't exist yet, seed from bundled object
+  if (bundledSeedData) {
     try {
-      const raw = fs.readFileSync(SEED_FILE, 'utf-8');
-      dataCache = JSON.parse(raw);
+      dataCache = JSON.parse(JSON.stringify(bundledSeedData));
       saveDatabase();
       return dataCache;
     } catch (err) {
-      console.error('Error reading seed file on Vercel:', err);
+      console.error('Error parsing bundled seed data:', err);
     }
   }
 
