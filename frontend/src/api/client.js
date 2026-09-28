@@ -76,15 +76,24 @@ export const api = {
     if (!created) {
       created = {
         _id: `usr_${Date.now()}`,
+        id: `usr_${Date.now()}`,
         name: data.name,
-        email: data.email,
+        email: data.email ? data.email.toLowerCase().trim() : '',
+        password: data.password || 'password123',
         role: data.role || 'teacher',
         phone: data.phone || '',
         createdAt: new Date().toISOString()
       };
+    } else {
+      created.password = data.password || created.password || 'password123';
     }
     const current = getLocal('edutuition_users', []);
-    setLocal('edutuition_users', [created, ...current]);
+    setLocal('edutuition_users', [created, ...current.filter(u => u.email !== created.email)]);
+
+    // Also sync to edutuition_custom_users
+    const custom = getLocal('edutuition_custom_users', []);
+    setLocal('edutuition_custom_users', [created, ...custom.filter(u => u.email !== created.email)]);
+
     return { data: { success: true, data: created } };
   },
   deleteUser: async (id) => {
@@ -778,8 +787,10 @@ export const api = {
       const mark = marksMap.get(sId);
       return {
         studentId: sId,
-        studentName: s.fullName,
-        studentCode: s.studentId || 'STU-001',
+        studentName: s.fullName || s.studentName || s.name || 'Student',
+        fullName: s.fullName || s.studentName || s.name || 'Student',
+        studentCode: s.studentId || s.code || s.studentCode || 'STU-001',
+        code: s.studentId || s.code || s.studentCode || 'STU-001',
         photo: s.photo,
         marksObtained: mark !== undefined ? mark : null,
         totalMarks: exam?.totalMarks || 100

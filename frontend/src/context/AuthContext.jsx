@@ -28,8 +28,18 @@ export const AuthProvider = ({ children }) => {
   // Helper to get all custom registered users stored locally
   const getCustomUsers = () => {
     try {
-      const stored = localStorage.getItem('edutuition_custom_users');
-      return stored ? JSON.parse(stored) : [];
+      const storedCustom = localStorage.getItem('edutuition_custom_users');
+      const storedUsers = localStorage.getItem('edutuition_users');
+      const list1 = storedCustom ? JSON.parse(storedCustom) : [];
+      const list2 = storedUsers ? JSON.parse(storedUsers) : [];
+      const map = new Map();
+      (Array.isArray(list2) ? list2 : []).forEach(u => {
+        if (u && u.email) map.set(u.email.toLowerCase().trim(), u);
+      });
+      (Array.isArray(list1) ? list1 : []).forEach(u => {
+        if (u && u.email) map.set(u.email.toLowerCase().trim(), u);
+      });
+      return Array.from(map.values());
     } catch {
       return [];
     }
@@ -97,21 +107,21 @@ export const AuthProvider = ({ children }) => {
     const allUsers = [...DEFAULT_USERS, ...customUsers];
 
     const matchedUser = allUsers.find(u => {
-      if (u.email?.toLowerCase() !== cleanEmail) return false;
+      if (u.email?.toLowerCase().trim() !== cleanEmail) return false;
       if (Array.isArray(u.password)) {
         return u.password.includes(cleanPass);
       }
-      return u.password === cleanPass;
+      return (u.password || 'password123') === cleanPass;
     });
 
     if (matchedUser) {
-      const localToken = `local_token_${Date.now()}_${matchedUser.id}`;
+      const localToken = `local_token_${Date.now()}_${matchedUser.id || matchedUser._id}`;
       const sessionUser = {
         id: matchedUser.id || matchedUser._id,
         name: matchedUser.name,
         email: matchedUser.email,
-        role: matchedUser.role,
-        isAdmin: matchedUser.isAdmin || matchedUser.email === 'admin@tuition.lk',
+        role: matchedUser.role || 'teacher',
+        isAdmin: matchedUser.isAdmin || matchedUser.role === 'admin' || matchedUser.email === 'admin@tuition.lk',
         phone: matchedUser.phone || '',
         avatar: matchedUser.avatar || '',
         studentProfile: matchedUser.studentProfile || null,
@@ -142,27 +152,33 @@ export const AuthProvider = ({ children }) => {
 
   // Add custom user (Used by Admin / Teacher to create new Teacher, Student, Parent accounts)
   const addCustomUser = async (userData) => {
-    // 1. Try sending to backend
+    let createdUser = null;
     try {
-      await api.createUser(userData);
-    } catch {
-      console.warn('Backend user creation failed, saving locally.');
+      const res = await api.createUser(userData);
+      if (res?.data?.success && res.data.data) {
+        createdUser = res.data.data;
+      }
+    } catch (e) {
+      console.warn('Backend user creation error:', e);
     }
 
-    // 2. Always persist locally
-    const customUsers = getCustomUsers();
+    const cleanEmail = userData.email ? userData.email.toLowerCase().trim() : '';
     const newUser = {
-      id: `custom_user_${Date.now()}`,
+      id: createdUser?._id || createdUser?.id || `custom_user_${Date.now()}`,
+      _id: createdUser?._id || createdUser?.id || `custom_user_${Date.now()}`,
       name: userData.name,
-      email: userData.email.toLowerCase().trim(),
-      password: userData.password,
-      role: userData.role,
+      email: cleanEmail,
+      password: userData.password || 'password123',
+      role: userData.role || 'teacher',
       phone: userData.phone || '',
       createdAt: new Date().toISOString()
     };
 
+    const customUsers = getCustomUsers().filter(u => u.email?.toLowerCase().trim() !== cleanEmail);
     customUsers.push(newUser);
     localStorage.setItem('edutuition_custom_users', JSON.stringify(customUsers));
+    localStorage.setItem('edutuition_users', JSON.stringify(customUsers));
+
     return { success: true, user: newUser };
   };
 

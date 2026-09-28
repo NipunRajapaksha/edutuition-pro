@@ -299,13 +299,17 @@ const ExamsMarksScreen = ({ onOpenCreateExam }) => {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
                         <img
-                          src={s.photo || `https://api.dicebear.com/7.x/bottts/png?seed=${encodeURIComponent(s.code)}`}
-                          alt={s.fullName}
+                          src={s.photo || `https://api.dicebear.com/7.x/bottts/png?seed=${encodeURIComponent(s.studentCode || s.code || s.studentId || 'STU')}`}
+                          alt={s.fullName || s.studentName || 'Student'}
                           style={{ width: '34px', height: '34px', borderRadius: '8px', objectFit: 'cover' }}
                         />
                         <div>
-                          <div style={{ fontSize: '12px', fontWeight: '700', color: colors.text }}>{s.fullName}</div>
-                          <div style={{ fontSize: '10px', color: colors.textMuted }}>{s.code}</div>
+                          <div style={{ fontSize: '13px', fontWeight: '700', color: colors.text }}>
+                            {s.fullName || s.studentName || s.name || 'Student'}
+                          </div>
+                          <div style={{ fontSize: '10px', color: colors.textMuted }}>
+                            {s.studentCode || s.code || s.studentId || 'STU-001'}
+                          </div>
                         </div>
                       </div>
 

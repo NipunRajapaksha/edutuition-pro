@@ -546,10 +546,9 @@ const StudentsScreen = ({ onOpenAddStudent, onViewQrId, onViewStudentHistory }) 
                       fontSize: '13px'
                     }}
                   >
-                    <option>Grade 9</option>
-                    <option>Grade 10</option>
-                    <option>Grade 11</option>
-                    <option>A/L</option>
+                    {grades.filter(g => g !== 'All').map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
                   </select>
                 </div>
                 <div>

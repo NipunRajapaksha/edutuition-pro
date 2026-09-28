@@ -6,7 +6,7 @@ const DATA_DIR = process.env.VERCEL ? '/tmp/data' : path.join(__dirname, '../dat
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const SEED_FILE = path.join(__dirname, '../data/db.json');
 
-// Try to require bundled data so esbuild/Vercel includes it in the bundle
+let dataCache = null;
 let bundledSeedData = null;
 try {
   bundledSeedData = require('../data/db.json');
