@@ -1,8 +1,15 @@
 import axios from 'axios';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
+const getInitialBaseUrl = () => {
+  try {
+    const saved = localStorage.getItem('edutuition_api_url');
+    if (saved) return saved;
+  } catch {}
+  return import.meta.env.VITE_API_BASE_URL || '/api';
+};
 
 const client = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getInitialBaseUrl(),
   headers: {
     'Content-Type': 'application/json'
   }
@@ -10,6 +17,12 @@ const client = axios.create({
 
 client.interceptors.request.use(
   (config) => {
+    try {
+      const customUrl = localStorage.getItem('edutuition_api_url');
+      if (customUrl) {
+        config.baseURL = customUrl;
+      }
+    } catch {}
     const token = localStorage.getItem('edutuition_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

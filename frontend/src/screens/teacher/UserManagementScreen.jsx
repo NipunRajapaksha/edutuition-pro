@@ -20,8 +20,10 @@ import {
   Crown,
   Lock,
   User,
-  Sparkles
+  Sparkles,
+  Smartphone
 } from 'lucide-react';
+import DataSyncModal from '../../components/modals/DataSyncModal';
 
 const UserManagementScreen = ({ onBack }) => {
   const { user, addCustomUser, getCustomUsers } = useAuth();
@@ -33,6 +35,7 @@ const UserManagementScreen = ({ onBack }) => {
   const [filterRole, setFilterRole] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
 
@@ -206,26 +209,48 @@ const UserManagementScreen = ({ onBack }) => {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={{
-            padding: '8px 14px',
-            borderRadius: '12px',
-            backgroundColor: colors.primary,
-            color: '#FFFFFF',
-            border: 'none',
-            fontSize: '12px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
-          }}
-        >
-          <UserPlus size={16} />
-          <span>Add Account</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setShowSyncModal(true)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '12px',
+              backgroundColor: colors.surfaceSubtle,
+              border: `1px solid ${colors.border}`,
+              color: colors.text,
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Smartphone size={15} color="#10B981" />
+            <span>Sync to Mobile</span>
+          </button>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '12px',
+              backgroundColor: colors.primary,
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+            }}
+          >
+            <UserPlus size={16} />
+            <span>Add Account</span>
+          </button>
+        </div>
       </div>
 
       {statusMsg && (
@@ -683,6 +708,17 @@ const UserManagementScreen = ({ onBack }) => {
             </form>
           </div>
         </div>
+      )}
+
+      {showSyncModal && (
+        <DataSyncModal
+          isOpen={showSyncModal}
+          onClose={() => setShowSyncModal(false)}
+          initialMode="export"
+          onSyncCompleted={() => {
+            fetchUsers();
+          }}
+        />
       )}
     </div>
   );

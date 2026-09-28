@@ -14,12 +14,16 @@ import {
   Percent,
   FileText,
   DollarSign,
-  UserCheck
+  UserCheck,
+  Smartphone
 } from 'lucide-react';
+import DataSyncModal from '../../components/modals/DataSyncModal';
 
 const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
+
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   const [formData, setFormData] = useState({
     instituteName: '',
@@ -421,6 +425,62 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
           <span>{saving ? 'Saving Changes...' : 'Save Institute Settings (සුරකින්න)'}</span>
         </button>
       </form>
+
+      {/* Device Sync & Cloud Section */}
+      <div
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: '16px',
+          padding: '18px',
+          border: `1px solid ${colors.border}`,
+          boxShadow: colors.cardShadow,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: '14px', fontWeight: '800', color: colors.text }}>
+              📲 PC & Mobile Data Sync / Cloud Setup
+            </div>
+            <div style={{ fontSize: '11px', color: colors.textMuted, marginTop: '2px' }}>
+              Transfer accounts, classes and students between PC and Mobile devices
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSyncModal(true)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '10px',
+              backgroundColor: colors.surfaceSubtle,
+              border: `1px solid ${colors.border}`,
+              color: colors.primaryLight,
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Smartphone size={15} color="#10B981" />
+            <span>Open Sync Manager</span>
+          </button>
+        </div>
+      </div>
+
+      {showSyncModal && (
+        <DataSyncModal
+          isOpen={showSyncModal}
+          onClose={() => setShowSyncModal(false)}
+          initialMode="export"
+          onSyncCompleted={() => {
+            fetchSettings();
+          }}
+        />
+      )}
     </div>
   );
 };

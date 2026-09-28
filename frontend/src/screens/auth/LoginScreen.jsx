@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { GraduationCap, Lock, Mail, ArrowRight } from 'lucide-react';
+import { GraduationCap, Lock, Mail, ArrowRight, Smartphone } from 'lucide-react';
+import DataSyncModal from '../../components/modals/DataSyncModal';
 
 const LoginScreen = () => {
   const { login } = useAuth();
@@ -13,6 +14,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -199,7 +201,42 @@ const LoginScreen = () => {
             <ArrowRight size={16} />
           </button>
         </form>
+
+        {/* Sync Button */}
+        <div style={{ marginTop: '20px', textAlign: 'center', borderTop: `1px solid ${colors.border}`, paddingTop: '16px' }}>
+          <button
+            type="button"
+            onClick={() => setShowSyncModal(true)}
+            style={{
+              background: 'none',
+              border: `1px dashed ${colors.border}`,
+              padding: '8px 16px',
+              borderRadius: '12px',
+              color: colors.primaryLight,
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Smartphone size={14} />
+            <span>📲 Sync Data from PC / Cloud (දත්ත හුවමාරුව)</span>
+          </button>
+        </div>
       </div>
+
+      {showSyncModal && (
+        <DataSyncModal
+          isOpen={showSyncModal}
+          onClose={() => setShowSyncModal(false)}
+          initialMode="import"
+          onSyncCompleted={() => {
+            setErrorMsg('');
+          }}
+        />
+      )}
     </div>
   );
 };
