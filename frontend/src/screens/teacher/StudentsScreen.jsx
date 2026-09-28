@@ -149,8 +149,21 @@ const StudentsScreen = ({ onOpenAddStudent, onViewQrId, onViewStudentHistory }) 
       parentName: student.parentName || '',
       parentPhone: student.parentPhone || '',
       address: student.address || '',
+      enrolledClasses: student.enrolledClasses || [],
       status: student.status || 'active',
       notes: student.notes || ''
+    });
+  };
+
+  const toggleEditClass = (cId) => {
+    setEditFormData(prev => {
+      const current = prev.enrolledClasses || [];
+      return {
+        ...prev,
+        enrolledClasses: current.includes(cId)
+          ? current.filter(id => id !== cId)
+          : [...current, cId]
+      };
     });
   };
 
@@ -641,6 +654,35 @@ const StudentsScreen = ({ onOpenAddStudent, onViewQrId, onViewStudentHistory }) 
                     fontSize: '13px'
                   }}
                 />
+              </div>
+
+              {/* Class Enrollment Checkboxes */}
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted, display: 'block', marginBottom: '6px' }}>
+                  Enrolled Classes (ලියාපදිංචි පන්ති)
+                </label>
+                {classes.length === 0 ? (
+                  <div style={{ fontSize: '12px', color: colors.textMuted, fontStyle: 'italic' }}>
+                    No classes available to assign.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '120px', overflowY: 'auto', padding: '6px', borderRadius: '8px', backgroundColor: colors.surfaceSubtle, border: `1px solid ${colors.border}` }}>
+                    {classes.map(c => {
+                      const cId = c._id || c.id;
+                      const isChecked = (editFormData.enrolledClasses || []).includes(cId);
+                      return (
+                        <label key={cId} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: colors.text, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleEditClass(cId)}
+                          />
+                          <span>{c.name} ({c.grade})</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>

@@ -28,11 +28,11 @@ const ReportsScreen = () => {
     const loadPrereqs = async () => {
       try {
         const [stuRes, clsRes] = await Promise.all([api.getStudents(), api.getClasses()]);
-        if (stuRes.data.success && stuRes.data.data.length > 0) {
+        if (stuRes?.data?.success && stuRes.data.data?.length > 0) {
           setStudents(stuRes.data.data);
           setSelectedStudentId(stuRes.data.data[0]._id || stuRes.data.data[0].id);
         }
-        if (clsRes.data.success && clsRes.data.data.length > 0) {
+        if (clsRes?.data?.success && clsRes.data.data?.length > 0) {
           setClasses(clsRes.data.data);
           setSelectedClassId(clsRes.data.data[0]._id || clsRes.data.data[0].id);
         }
@@ -49,16 +49,16 @@ const ReportsScreen = () => {
     try {
       if (reportType === 'financial') {
         const res = await api.getFinancialReport(2026);
-        if (res.data.success) setReportData({ type: 'financial', data: res.data.data });
+        if (res?.data?.success) setReportData({ type: 'financial', data: res.data.data });
       } else if (reportType === 'student' && selectedStudentId) {
         const res = await api.getStudentReport(selectedStudentId);
-        if (res.data.success) setReportData({ type: 'student', data: res.data.report });
+        if (res?.data?.success) setReportData({ type: 'student', data: res.data.report });
       } else if (reportType === 'class' && selectedClassId) {
         const res = await api.getClassReport(selectedClassId);
-        if (res.data.success) setReportData({ type: 'class', data: res.data.report });
+        if (res?.data?.success) setReportData({ type: 'class', data: res.data.report });
       }
     } catch (err) {
-      alert('Error fetching report');
+      console.error('Error fetching report:', err);
     } finally {
       setLoading(false);
     }
@@ -69,13 +69,32 @@ const ReportsScreen = () => {
   }, [reportType, selectedStudentId, selectedClassId]);
 
   const handleExportCsv = () => {
-    let url = 'http://localhost:5000/api/reports/financial?format=csv';
-    if (reportType === 'student' && selectedStudentId) {
-      url = `http://localhost:5000/api/reports/student/${selectedStudentId}?format=csv`;
-    } else if (reportType === 'class' && selectedClassId) {
-      url = `http://localhost:5000/api/reports/class/${selectedClassId}?format=csv`;
+    let csvContent = 'data:text/csv;charset=utf-8,';
+    if (reportType === 'financial' && reportData?.data) {
+      csvContent += 'Year,Total Collected,Total Expected,Total Pending\n';
+      csvContent += `${reportData.data.year || 2026},${reportData.data.totalCollected || 0},${reportData.data.totalExpected || 0},${reportData.data.totalPending || 0}\n\n`;
+      csvContent += 'Month,Collected (Rs.)\n';
+      (reportData.data.monthlyBreakdown || []).forEach(m => {
+        csvContent += `"${m.month}",${m.collected}\n`;
+      });
+    } else if (reportType === 'student' && reportData?.data) {
+      csvContent += 'Student Name,Student ID,Grade,Attendance Rate,Fees Paid,Balance\n';
+      csvContent += `"${reportData.data.studentName}",${reportData.data.studentId},"${reportData.data.grade}",${reportData.data.attendanceSummary?.attendanceRate || 100}%,${reportData.data.feeSummary?.totalPaid || 0},${reportData.data.feeSummary?.balance || 0}\n`;
+    } else if (reportType === 'class' && reportData?.data) {
+      csvContent += 'Class Name,Subject,Grade,Enrolled Students,Average Attendance,Total Fees Collected\n';
+      csvContent += `"${reportData.data.className}","${reportData.data.subject}","${reportData.data.grade}",${reportData.data.enrolledCount || 0},${reportData.data.averageAttendance || 100}%,${reportData.data.totalFeesCollected || 0}\n`;
+    } else {
+      csvContent += 'Report Type,Generated Date\n';
+      csvContent += `${reportType},${new Date().toISOString()}\n`;
     }
-    window.open(url, '_blank');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handlePrint = () => {

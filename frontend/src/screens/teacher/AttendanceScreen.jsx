@@ -30,18 +30,21 @@ const AttendanceScreen = () => {
   const [showQrModal, setShowQrModal] = useState(false);
 
   // Load classes
-  useEffect(() => {
-    const loadClasses = async () => {
-      try {
-        const res = await api.getClasses();
-        if (res.data.success && res.data.data.length > 0) {
-          setClasses(res.data.data);
+  const loadClasses = async () => {
+    try {
+      const res = await api.getClasses();
+      if (res?.data?.success && res.data.data?.length > 0) {
+        setClasses(res.data.data);
+        if (!selectedClassId || !res.data.data.some(c => (c._id || c.id) === selectedClassId)) {
           setSelectedClassId(res.data.data[0]._id || res.data.data[0].id);
         }
-      } catch (err) {
-        console.error(err);
       }
-    };
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
     loadClasses();
   }, []);
 
@@ -51,7 +54,7 @@ const AttendanceScreen = () => {
     setLoading(true);
     try {
       const res = await api.getAttendance({ classId: selectedClassId, date: selectedDate });
-      if (res.data.success) {
+      if (res?.data?.success) {
         setAttendanceData(res.data.data);
       }
     } catch (err) {
