@@ -186,7 +186,38 @@ export const api = {
       }
     } catch {}
 
-    let merged = mergeLists(local, server, '_id');
+    let rawMerged = mergeLists(local, server, '_id');
+
+    // Deduplicate by normalized fullName or studentId
+    const dedupedMap = new Map();
+    const seenNames = new Map();
+
+    rawMerged.forEach(item => {
+      if (!item) return;
+      const normName = (item.fullName || '').toLowerCase().trim();
+      const sId = item.studentId;
+
+      if (normName && seenNames.has(normName)) {
+        const existingKey = seenNames.get(normName);
+        const existing = dedupedMap.get(existingKey);
+        if (existing) {
+          existing.enrolledClasses = Array.from(new Set([
+            ...(Array.isArray(existing.enrolledClasses) ? existing.enrolledClasses : []),
+            ...(Array.isArray(item.enrolledClasses) ? item.enrolledClasses : [])
+          ]));
+          if (!existing.email && item.email) existing.email = item.email;
+          if (!existing.phone && item.phone) existing.phone = item.phone;
+          if (!existing.userId && item.userId) existing.userId = item.userId;
+        }
+        return;
+      }
+
+      const key = item._id || item.id || sId || normName;
+      if (normName) seenNames.set(normName, key);
+      dedupedMap.set(key, { ...item });
+    });
+
+    let merged = Array.from(dedupedMap.values());
     setLocal('edutuition_students', merged);
 
     if (params.grade && params.grade !== 'All') {

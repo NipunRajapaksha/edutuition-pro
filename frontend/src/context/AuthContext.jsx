@@ -75,6 +75,40 @@ export const AuthProvider = ({ children }) => {
           }
         }
       }
+
+      // Automatically clean up any duplicate student profiles in local storage
+      try {
+        const rawStudents = localStorage.getItem('edutuition_students');
+        if (rawStudents) {
+          const parsed = JSON.parse(rawStudents);
+          if (Array.isArray(parsed) && parsed.length > 1) {
+            const deduped = [];
+            const seen = new Set();
+            for (const s of parsed) {
+              const key = (s.fullName || '').toLowerCase().trim();
+              if (key && seen.has(key)) {
+                const target = deduped.find(x => (x.fullName || '').toLowerCase().trim() === key);
+                if (target) {
+                  target.enrolledClasses = Array.from(new Set([
+                    ...(target.enrolledClasses || []),
+                    ...(s.enrolledClasses || [])
+                  ]));
+                  if (!target.email && s.email) target.email = s.email;
+                  if (!target.userId && s.userId) target.userId = s.userId;
+                  if (!target.phone && s.phone) target.phone = s.phone;
+                }
+                continue;
+              }
+              if (key) seen.add(key);
+              deduped.push(s);
+            }
+            if (deduped.length !== parsed.length) {
+              localStorage.setItem('edutuition_students', JSON.stringify(deduped));
+            }
+          }
+        }
+      } catch (e) {}
+
       setLoading(false);
     };
 
@@ -205,17 +239,24 @@ export const AuthProvider = ({ children }) => {
     }
 
     const cleanEmail = userData.email ? userData.email.toLowerCase().trim() : '';
+    const cleanName = userData.name ? userData.name.trim() : '';
     const assignedRole = userData.role || (isCallerAdmin ? 'teacher' : 'student');
+    const classesToEnroll = Array.isArray(userData.enrolledClasses)
+      ? userData.enrolledClasses
+      : (userData.classId ? [userData.classId] : []);
+
     const newUser = {
       id: createdUser?._id || createdUser?.id || `custom_user_${Date.now()}`,
       _id: createdUser?._id || createdUser?.id || `custom_user_${Date.now()}`,
-      name: userData.name,
+      name: cleanName,
       email: cleanEmail,
       password: userData.password || 'password123',
       role: assignedRole,
       phone: userData.phone || '',
       grade: userData.grade || '',
+      studentProfileId: userData.studentProfileId || createdUser?.studentProfileId || '',
       linkedStudentId: userData.linkedStudentId || '',
+      enrolledClasses: classesToEnroll,
       createdAt: new Date().toISOString()
     };
 
@@ -223,23 +264,62 @@ export const AuthProvider = ({ children }) => {
     if (assignedRole === 'student') {
       try {
         const storedStudents = localStorage.getItem('edutuition_students');
-        const students = storedStudents ? JSON.parse(storedStudents) : [];
-        let existingStudent = students.find(s => s.email?.toLowerCase().trim() === cleanEmail);
-        const enrolledClasses = userData.classId ? [userData.classId] : [];
+        let students = storedStudents ? JSON.parse(storedStudents) : [];
 
-        if (!existingStudent) {
+        // 1. Search by explicit studentProfileId
+        let existingStudent = null;
+        if (userData.studentProfileId) {
+          existingStudent = students.find(s => (s._id || s.id) === userData.studentProfileId);
+        }
+        // 2. Search by email
+        if (!existingStudent && cleanEmail) {
+          existingStudent = students.find(s => s.email && s.email.toLowerCase().trim() === cleanEmail);
+        }
+        // 3. Search by normalized student fullName (case-insensitive) - PREVENTS DUPLICATE OMINDI
+        if (!existingStudent && cleanName) {
+          existingStudent = students.find(s => s.fullName && s.fullName.toLowerCase().trim() === cleanName.toLowerCase());
+        }
+
+        if (existingStudent) {
+          // Update the existing student profile rather than creating a duplicate
+          existingStudent.userId = newUser.id;
+          if (cleanEmail) existingStudent.email = cleanEmail;
+          if (userData.phone) existingStudent.phone = userData.phone;
+          if (userData.grade) existingStudent.grade = userData.grade;
+
+          // Merge multiple enrolled classes
+          const currentClasses = Array.isArray(existingStudent.enrolledClasses) ? existingStudent.enrolledClasses : [];
+          existingStudent.enrolledClasses = Array.from(new Set([...currentClasses, ...classesToEnroll]));
+
+          // Deduplicate any extra duplicate records with this name in edutuition_students
+          students = students.filter(s => {
+            if ((s._id || s.id) === (existingStudent._id || existingStudent.id)) return true;
+            if (s.fullName && s.fullName.toLowerCase().trim() === cleanName.toLowerCase()) {
+              // Merge any classes from the duplicate
+              const otherClasses = Array.isArray(s.enrolledClasses) ? s.enrolledClasses : [];
+              existingStudent.enrolledClasses = Array.from(new Set([...existingStudent.enrolledClasses, ...otherClasses]));
+              return false; // remove duplicate!
+            }
+            return true;
+          });
+
+          localStorage.setItem('edutuition_students', JSON.stringify(students));
+          newUser.studentProfileId = existingStudent._id || existingStudent.id;
+          newUser.studentProfile = existingStudent;
+        } else {
+          // Only create new student profile if none exists
           const studentId = `STU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
           const newStudentProfile = {
             _id: `stu_${Date.now()}`,
             id: `stu_${Date.now()}`,
             userId: newUser.id,
             studentId,
-            fullName: newUser.name,
+            fullName: cleanName,
             email: cleanEmail,
             phone: newUser.phone || '',
             grade: userData.grade || 'Grade 11',
             school: userData.school || 'N.A.R Academy',
-            enrolledClasses,
+            enrolledClasses: classesToEnroll,
             status: 'active',
             createdAt: new Date().toISOString()
           };
@@ -247,9 +327,6 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('edutuition_students', JSON.stringify(students));
           newUser.studentProfileId = newStudentProfile._id;
           newUser.studentProfile = newStudentProfile;
-        } else if (userData.classId && !(existingStudent.enrolledClasses || []).includes(userData.classId)) {
-          existingStudent.enrolledClasses = [...(existingStudent.enrolledClasses || []), userData.classId];
-          localStorage.setItem('edutuition_students', JSON.stringify(students));
         }
       } catch (err) {
         console.warn('Error linking student profile:', err);

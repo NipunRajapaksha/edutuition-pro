@@ -70,10 +70,37 @@ const StudentsScreen = ({ onOpenAddStudent, onViewQrId, onViewStudentHistory }) 
         serverClasses = clsRes.value.data.data;
       }
 
-      // Merge server & local without loss
+      // Merge server & local without loss and deduplicate by normalized name
       const studentMap = new Map();
-      serverStudents.forEach(s => studentMap.set(s._id || s.id || s.studentId, s));
-      localStudents.forEach(s => studentMap.set(s._id || s.id || s.studentId, s));
+      const seenNames = new Map();
+
+      const processStudent = (s) => {
+        if (!s) return;
+        const normName = (s.fullName || '').toLowerCase().trim();
+        if (normName && seenNames.has(normName)) {
+          const existingKey = seenNames.get(normName);
+          const existing = studentMap.get(existingKey);
+          if (existing) {
+            existing.enrolledClasses = Array.from(new Set([
+              ...(Array.isArray(existing.enrolledClasses) ? existing.enrolledClasses : []),
+              ...(Array.isArray(s.enrolledClasses) ? s.enrolledClasses : [])
+            ]));
+            if (!existing.email && s.email) existing.email = s.email;
+            if (!existing.phone && s.phone) existing.phone = s.phone;
+            if (!existing.userId && s.userId) existing.userId = s.userId;
+            if (!existing.school && s.school) existing.school = s.school;
+            if (!existing.parentName && s.parentName) existing.parentName = s.parentName;
+            if (!existing.parentPhone && s.parentPhone) existing.parentPhone = s.parentPhone;
+          }
+          return;
+        }
+        const key = s._id || s.id || s.studentId || normName;
+        if (normName) seenNames.set(normName, key);
+        studentMap.set(key, { ...s });
+      };
+
+      serverStudents.forEach(processStudent);
+      localStudents.forEach(processStudent);
       let mergedStudents = Array.from(studentMap.values());
 
       const classMap = new Map();

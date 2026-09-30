@@ -89,21 +89,48 @@ const UserManagementScreen = ({ onBack }) => {
     setUsers([...defaults, ...customUsers]);
   };
 
-  useEffect(() => {
+  const [studentMode, setStudentMode] = useState('existing'); // 'existing' | 'new'
+
+  const fetchAllData = async () => {
     fetchUsers();
     api.getClasses().then(res => {
       if (res?.data?.success && Array.isArray(res.data.data)) {
         setAllClasses(res.data.data);
       }
     }).catch(() => {});
-    api.getStudents().then(res => {
-      if (res?.data?.success && Array.isArray(res.data.data)) {
-        setAllStudents(res.data.data);
+
+    try {
+      const res = await api.getStudents();
+      let students = (res?.data?.success && Array.isArray(res.data.data)) ? res.data.data : [];
+      const localRaw = localStorage.getItem('edutuition_students');
+      if (localRaw) {
+        try {
+          const local = JSON.parse(localRaw);
+          const map = new Map();
+          students.forEach(s => map.set(s._id || s.id || s.studentId, s));
+          local.forEach(s => map.set(s._id || s.id || s.studentId, s));
+          students = Array.from(map.values());
+        } catch {}
       }
-    }).catch(() => {});
+      // Deduplicate by normalized fullName
+      const unique = [];
+      const seen = new Set();
+      students.forEach(s => {
+        const k = (s.fullName || '').toLowerCase().trim();
+        if (k && seen.has(k)) return;
+        if (k) seen.add(k);
+        unique.push(s);
+      });
+      setAllStudents(unique);
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchAllData();
   }, []);
 
   const openCreateModal = () => {
+    setStudentMode(allStudents.length > 0 ? 'existing' : 'new');
     setFormData({
       name: '',
       email: '',
@@ -112,6 +139,8 @@ const UserManagementScreen = ({ onBack }) => {
       phone: '',
       grade: 'Grade 11',
       classId: '',
+      enrolledClasses: [],
+      studentProfileId: '',
       linkedStudentId: '',
       subjects: ''
     });
@@ -135,7 +164,7 @@ const UserManagementScreen = ({ onBack }) => {
       setStatusMsg({ type: 'success', text: `Account for ${formData.name} created successfully!` });
       setShowCreateModal(false);
       openCreateModal();
-      fetchUsers();
+      fetchAllData();
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.message || 'Error creating account. Please try again.' });
     }
@@ -614,9 +643,123 @@ const UserManagementScreen = ({ onBack }) => {
                 )}
               </div>
 
-              {/* Student Grade & Class Selection */}
+              {/* Student Configuration */}
               {formData.role === 'student' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', backgroundColor: colors.surfaceSubtle, padding: '10px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: colors.surfaceSubtle, padding: '12px', borderRadius: '14px', border: `1px solid ${colors.border}` }}>
+                  {/* Mode Selector */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '6px' }}>
+                      STUDENT PROFILE (ශිෂ්‍ය විස්තරය)
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStudentMode('existing');
+                        }}
+                        style={{
+                          padding: '7px 8px',
+                          borderRadius: '8px',
+                          backgroundColor: studentMode === 'existing' ? colors.primary : colors.surface,
+                          border: `1px solid ${studentMode === 'existing' ? colors.primary : colors.border}`,
+                          color: studentMode === 'existing' ? '#FFFFFF' : colors.text,
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🔗 Link Existing Student
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStudentMode('new');
+                          setFormData(prev => ({
+                            ...prev,
+                            studentProfileId: '',
+                            name: '',
+                            email: '',
+                            phone: '',
+                            enrolledClasses: []
+                          }));
+                        }}
+                        style={{
+                          padding: '7px 8px',
+                          borderRadius: '8px',
+                          backgroundColor: studentMode === 'new' ? colors.primary : colors.surface,
+                          border: `1px solid ${studentMode === 'new' ? colors.primary : colors.border}`,
+                          color: studentMode === 'new' ? '#FFFFFF' : colors.text,
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ➕ Create Brand New
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Existing Student Dropdown */}
+                  {studentMode === 'existing' && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '4px' }}>
+                        Select Enrolled Student (දැනට සිටින ශිෂ්‍යයා තෝරන්න) *
+                      </label>
+                      <select
+                        value={formData.studentProfileId || ''}
+                        onChange={(e) => {
+                          const sId = e.target.value;
+                          const found = allStudents.find(s => (s._id || s.id) === sId);
+                          if (found) {
+                            const defaultEmail = found.email || `${(found.studentId || 'student').toLowerCase().replace(/[^a-z0-9]/g, '')}@tuition.lk`;
+                            setFormData(prev => ({
+                              ...prev,
+                              studentProfileId: sId,
+                              name: found.fullName,
+                              grade: found.grade || prev.grade,
+                              phone: found.phone || prev.phone,
+                              email: defaultEmail,
+                              enrolledClasses: Array.isArray(found.enrolledClasses) ? found.enrolledClasses : []
+                            }));
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              studentProfileId: '',
+                              name: '',
+                              email: '',
+                              enrolledClasses: []
+                            }));
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: `1px solid ${colors.border}`,
+                          backgroundColor: colors.surface,
+                          color: colors.text,
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          outline: 'none'
+                        }}
+                      >
+                        <option value="">-- Choose Student (e.g. Omindi) --</option>
+                        {allStudents.map(s => (
+                          <option key={s._id || s.id} value={s._id || s.id}>
+                            {s.fullName} ({s.studentId} • {s.grade})
+                          </option>
+                        ))}
+                      </select>
+
+                      {formData.studentProfileId && (
+                        <div style={{ marginTop: '6px', fontSize: '11px', color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>✅ Linked to existing student profile. No duplicate will be created!</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Grade Selector */}
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '4px' }}>
                       Grade (ශ්‍රේණිය)
@@ -636,6 +779,11 @@ const UserManagementScreen = ({ onBack }) => {
                         outline: 'none'
                       }}
                     >
+                      <option value="Grade 1">Grade 1</option>
+                      <option value="Grade 2">Grade 2</option>
+                      <option value="Grade 3">Grade 3</option>
+                      <option value="Grade 4">Grade 4</option>
+                      <option value="Grade 5">Grade 5</option>
                       <option value="Grade 6">Grade 6</option>
                       <option value="Grade 7">Grade 7</option>
                       <option value="Grade 8">Grade 8</option>
@@ -644,35 +792,106 @@ const UserManagementScreen = ({ onBack }) => {
                       <option value="Grade 11">Grade 11 (O/L)</option>
                       <option value="Grade 12">Grade 12 (A/L)</option>
                       <option value="Grade 13">Grade 13 (A/L)</option>
+                      <option value="A/L Revision">A/L Revision</option>
                     </select>
                   </div>
 
+                  {/* Multi-Class Enrollment */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '4px' }}>
-                      Enrolled Class (පන්තිය)
-                    </label>
-                    <select
-                      value={formData.classId}
-                      onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        border: `1px solid ${colors.border}`,
-                        backgroundColor: colors.surface,
-                        color: colors.text,
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        outline: 'none'
-                      }}
-                    >
-                      <option value="">-- All / Grade Match --</option>
-                      {allClasses.map(c => (
-                        <option key={c._id || c.id} value={c._id || c.id}>
-                          {c.name} ({c.grade})
-                        </option>
-                      ))}
-                    </select>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '700', color: colors.textMuted }}>
+                        Enrolled Classes (ලියාපදිංචි පන්ති) - Multi-Select
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: colors.primary, fontWeight: '700' }}>
+                          {(formData.enrolledClasses || []).length} selected
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const matching = allClasses
+                              .filter(c => !formData.grade || c.grade === formData.grade || (c.grade && c.grade.includes(formData.grade)))
+                              .map(c => c._id || c.id);
+                            setFormData(prev => ({
+                              ...prev,
+                              enrolledClasses: Array.from(new Set([...(prev.enrolledClasses || []), ...matching]))
+                            }));
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: colors.primary,
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          Select All Grade Classes
+                        </button>
+                        {(formData.enrolledClasses || []).length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, enrolledClasses: [] }))}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#EF4444',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '130px', overflowY: 'auto', padding: '8px', borderRadius: '10px', backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
+                      {allClasses.length === 0 ? (
+                        <div style={{ fontSize: '11px', color: colors.textMuted, fontStyle: 'italic' }}>No classes available</div>
+                      ) : (
+                        allClasses.map(c => {
+                          const cId = c._id || c.id;
+                          const isChecked = (formData.enrolledClasses || []).includes(cId);
+                          return (
+                            <label
+                              key={cId}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '6px 8px',
+                                borderRadius: '8px',
+                                backgroundColor: isChecked ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
+                                border: `1px solid ${isChecked ? colors.primaryLight : 'transparent'}`,
+                                cursor: 'pointer',
+                                fontSize: '11px'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    const cur = formData.enrolledClasses || [];
+                                    const updated = isChecked ? cur.filter(id => id !== cId) : [...cur, cId];
+                                    setFormData(prev => ({ ...prev, enrolledClasses: updated }));
+                                  }}
+                                />
+                                <span style={{ fontWeight: isChecked ? '700' : '500', color: colors.text }}>
+                                  {c.name}
+                                </span>
+                              </div>
+                              <span style={{ color: colors.textMuted, fontSize: '10px' }}>
+                                {c.grade} • {c.subject || 'Tuition'}
+                              </span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

@@ -239,13 +239,26 @@ const getUsers = async (req, res, next) => {
 
 const createUser = async (req, res, next) => {
   try {
-    const { name, email, password, role = 'student', phone = '', studentProfileId = null, linkedStudentId = null } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role = 'student',
+      phone = '',
+      studentProfileId = null,
+      linkedStudentId = null,
+      enrolledClasses = [],
+      grade = 'Grade 11'
+    } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email, and password required' });
     }
 
-    const existing = storage.users.findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanName = name.trim();
+
+    const existing = storage.users.findOne({ email: cleanEmail });
     if (existing) {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });
     }
@@ -253,16 +266,62 @@ const createUser = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    let assignedStudentProfileId = studentProfileId;
+
+    if (role === 'student') {
+      let matchedStudent = null;
+      if (assignedStudentProfileId) {
+        matchedStudent = storage.students.findById(assignedStudentProfileId);
+      }
+      if (!matchedStudent && cleanEmail) {
+        matchedStudent = storage.students.findOne({ email: cleanEmail });
+      }
+      if (!matchedStudent && cleanName) {
+        const allStu = storage.students.find();
+        matchedStudent = allStu.find(s => (s.fullName || '').toLowerCase().trim() === cleanName.toLowerCase());
+      }
+
+      const classesToEnroll = Array.isArray(enrolledClasses) ? enrolledClasses : (req.body.classId ? [req.body.classId] : []);
+
+      if (matchedStudent) {
+        assignedStudentProfileId = matchedStudent._id;
+        const currentClasses = Array.isArray(matchedStudent.enrolledClasses) ? matchedStudent.enrolledClasses : [];
+        const mergedClasses = Array.from(new Set([...currentClasses, ...classesToEnroll]));
+        storage.students.findByIdAndUpdate(matchedStudent._id, {
+          email: cleanEmail,
+          phone: phone.trim() || matchedStudent.phone,
+          enrolledClasses: mergedClasses
+        });
+      } else {
+        const newStuId = `STU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+        const createdStu = storage.students.create({
+          studentId: newStuId,
+          fullName: cleanName,
+          email: cleanEmail,
+          phone: phone.trim(),
+          grade,
+          school: req.body.school || 'N.A.R Academy',
+          enrolledClasses: classesToEnroll,
+          status: 'active'
+        });
+        assignedStudentProfileId = createdStu._id;
+      }
+    }
+
     const newUser = storage.users.create({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name: cleanName,
+      email: cleanEmail,
       password: hashedPassword,
       role,
       phone: phone.trim(),
-      studentProfileId,
+      studentProfileId: assignedStudentProfileId,
       linkedStudentId,
       createdAt: new Date().toISOString()
     });
+
+    if (role === 'student' && assignedStudentProfileId) {
+      storage.students.findByIdAndUpdate(assignedStudentProfileId, { userId: newUser._id });
+    }
 
     res.status(201).json({
       success: true,
@@ -272,7 +331,8 @@ const createUser = async (req, res, next) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        phone: newUser.phone
+        phone: newUser.phone,
+        studentProfileId: assignedStudentProfileId
       }
     });
   } catch (err) {
