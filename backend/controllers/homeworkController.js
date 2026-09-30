@@ -277,10 +277,51 @@ const getHomeworkSubmissions = async (req, res, next) => {
   }
 };
 
+const updateHomework = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { title, description, deadline, totalMarks, classId } = req.body;
+    const existing = storage.homework.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Homework not found' });
+    }
+    const cls = classId ? storage.classes.findById(classId) : storage.classes.findById(existing.classId);
+    const updated = storage.homework.findByIdAndUpdate(id, {
+      title: title !== undefined ? title : existing.title,
+      description: description !== undefined ? description : existing.description,
+      deadline: deadline !== undefined ? deadline : existing.deadline,
+      totalMarks: totalMarks !== undefined ? Number(totalMarks) : existing.totalMarks,
+      classId: classId !== undefined ? classId : existing.classId,
+      subject: cls ? cls.subject : existing.subject
+    });
+    res.json({ success: true, message: 'Homework updated successfully', data: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteHomework = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const existing = storage.homework.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Homework not found' });
+    }
+    storage.homework.findByIdAndDelete(id);
+    const submissions = storage.homeworkSubmissions.find({ homeworkId: id });
+    submissions.forEach(s => storage.homeworkSubmissions.findByIdAndDelete(s._id));
+    res.json({ success: true, message: 'Homework deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getHomework,
   getStudentHomework,
   createHomework,
+  updateHomework,
+  deleteHomework,
   submitHomework,
   reviewSubmission,
   getHomeworkSubmissions

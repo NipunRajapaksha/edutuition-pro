@@ -823,6 +823,41 @@ export const api = {
     setLocal('edutuition_homework', [created, ...current]);
     return { data: { success: true, data: created } };
   },
+  updateHomework: async (id, data) => {
+    let updated = null;
+    try {
+      const res = await client.put(`/homework/${id}`, data);
+      if (res?.data?.success && res.data.data) updated = res.data.data;
+    } catch {}
+    const list = getLocal('edutuition_homework', []);
+    const classes = getLocal('edutuition_classes', []);
+    const cls = data.classId ? classes.find(c => (c._id || c.id) === data.classId) : null;
+    const newList = list.map(h => {
+      if ((h._id || h.id) === id) {
+        return {
+          ...h,
+          ...data,
+          className: cls ? cls.name : h.className,
+          subject: cls ? cls.subject : h.subject,
+          grade: cls ? cls.grade : h.grade,
+          totalMarks: data.totalMarks !== undefined ? Number(data.totalMarks) : h.totalMarks
+        };
+      }
+      return h;
+    });
+    setLocal('edutuition_homework', newList);
+    return { data: { success: true, data: updated || newList.find(h => (h._id || h.id) === id) } };
+  },
+  deleteHomework: async (id) => {
+    try {
+      await client.delete(`/homework/${id}`);
+    } catch {}
+    const list = getLocal('edutuition_homework', []);
+    const filtered = list.filter(h => (h._id || h.id) !== id);
+    setLocal('edutuition_homework', filtered);
+    localStorage.removeItem(`edutuition_hw_subs_${id}`);
+    return { data: { success: true, message: 'Homework deleted' } };
+  },
   submitHomework: async (data) => {
     try {
       const res = await client.post('/homework/submit', data);
@@ -903,6 +938,40 @@ export const api = {
     const current = getLocal('edutuition_exams', []);
     setLocal('edutuition_exams', [created, ...current]);
     return { data: { success: true, data: created } };
+  },
+  updateExam: async (id, data) => {
+    let updated = null;
+    try {
+      const res = await client.put(`/exams/${id}`, data);
+      if (res?.data?.success && res.data.data) updated = res.data.data;
+    } catch {}
+    const list = getLocal('edutuition_exams', []);
+    const classes = getLocal('edutuition_classes', []);
+    const cls = data.classId ? classes.find(c => (c._id || c.id) === data.classId) : null;
+    const newList = list.map(e => {
+      if ((e._id || e.id) === id) {
+        return {
+          ...e,
+          ...data,
+          className: cls ? cls.name : e.className,
+          subject: cls ? cls.subject : e.subject,
+          totalMarks: data.totalMarks !== undefined ? Number(data.totalMarks) : e.totalMarks
+        };
+      }
+      return e;
+    });
+    setLocal('edutuition_exams', newList);
+    return { data: { success: true, data: updated || newList.find(e => (e._id || e.id) === id) } };
+  },
+  deleteExam: async (id) => {
+    try {
+      await client.delete(`/exams/${id}`);
+    } catch {}
+    const list = getLocal('edutuition_exams', []);
+    const filtered = list.filter(e => (e._id || e.id) !== id);
+    setLocal('edutuition_exams', filtered);
+    localStorage.removeItem(`edutuition_marks_${id}`);
+    return { data: { success: true, message: 'Exam deleted' } };
   },
   enterExamMarks: async (examId, marks) => {
     try {

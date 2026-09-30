@@ -250,9 +250,51 @@ const getExamMarks = async (req, res, next) => {
   }
 };
 
+const updateExam = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, type, date, totalMarks, classId, subject } = req.body;
+    const existing = storage.exams.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Exam not found' });
+    }
+    const cls = classId ? storage.classes.findById(classId) : storage.classes.findById(existing.classId);
+    const updated = storage.exams.findByIdAndUpdate(id, {
+      name: name !== undefined ? name : existing.name,
+      type: type !== undefined ? type : existing.type,
+      date: date !== undefined ? date : existing.date,
+      totalMarks: totalMarks !== undefined ? Number(totalMarks) : existing.totalMarks,
+      classId: classId !== undefined ? classId : existing.classId,
+      subject: subject || (cls ? cls.subject : existing.subject)
+    });
+    res.json({ success: true, message: 'Exam updated successfully', data: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteExam = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const existing = storage.exams.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Exam not found' });
+    }
+    storage.exams.findByIdAndDelete(id);
+    // Delete marks recorded for this exam
+    const marks = storage.marks.find({ examId: id });
+    marks.forEach(m => storage.marks.findByIdAndDelete(m._id));
+    res.json({ success: true, message: 'Exam deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getExams,
   createExam,
+  updateExam,
+  deleteExam,
   enterMarksBulk,
   getExamMarks
 };
