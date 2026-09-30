@@ -15,31 +15,39 @@ const StudentFeesScreen = ({ onViewReceipt }) => {
   const [fees, setFees] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const studentProfileId = user?.studentProfileId || user?.studentProfile?._id;
+  const studentProfileId = user?.studentProfileId || user?.studentProfile?._id || user?.studentProfile?.id || user?._id || user?.id;
 
   useEffect(() => {
+    let isMounted = true;
     const fetchFees = async () => {
-      if (!studentProfileId) return;
+      setLoading(true);
       try {
-        setLoading(true);
         const [stuRes, feeRes] = await Promise.all([
           api.getStudentById(studentProfileId),
           api.getFees({ studentId: studentProfileId })
         ]);
 
-        if (stuRes.data.success) setStudent(stuRes.data.data);
-        if (feeRes.data.success) setFees(feeRes.data.data);
+        if (isMounted) {
+          if (stuRes?.data?.success && stuRes.data.data) setStudent(stuRes.data.data);
+          if (feeRes?.data?.success && Array.isArray(feeRes.data.data)) setFees(feeRes.data.data);
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching fees:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchFees();
+    return () => { isMounted = false; };
   }, [studentProfileId]);
 
   if (loading) {
-    return <div style={{ padding: '30px', textAlign: 'center', color: colors.textMuted }}>{t('loading')}</div>;
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.textMuted }}>
+        <div style={{ fontSize: '15px', fontWeight: '700', color: colors.text }}>Loading Fees & Payments...</div>
+        <div style={{ fontSize: '12px', marginTop: '6px' }}>Retrieving your invoice history and balance</div>
+      </div>
+    );
   }
 
   const stats = student?.stats || { totalFeeDue: 0, totalFeePaid: 0, pendingBalance: 0 };

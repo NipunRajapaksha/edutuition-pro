@@ -16,11 +16,12 @@ import {
   ShieldAlert,
   GraduationCap,
   Calendar,
-  Lock
+  Lock,
+  LogOut
 } from 'lucide-react';
 
 const StudentProfileScreen = ({ onViewQrId }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { colors } = useTheme();
   const { t } = useLanguage();
 
@@ -28,32 +29,43 @@ const StudentProfileScreen = ({ onViewQrId }) => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const studentId = user?.studentProfileId || user?.studentProfile?._id || user?.studentProfile?.id || user?._id || user?.id;
+
   useEffect(() => {
-    if (user?.studentProfile?._id || user?.studentProfile?.id) {
-      const studentId = user.studentProfile._id || user.studentProfile.id;
+    let isMounted = true;
+    if (studentId) {
       setLoading(true);
       api.getStudentById(studentId)
         .then(res => {
-          if (res.data.success) {
+          if (isMounted && res?.data?.success && res.data.data) {
             setStudent(res.data.data);
           }
         })
         .catch(err => console.error('Error fetching student profile:', err))
-        .finally(() => setLoading(false));
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
     }
 
     api.getClasses()
       .then(res => {
-        if (res.data.success) {
+        if (isMounted && res?.data?.success && Array.isArray(res.data.data)) {
           setClasses(res.data.data);
         }
       })
       .catch(err => console.error('Error fetching classes:', err));
-  }, [user]);
 
-  const studentClasses = classes.filter(c => 
-    student?.enrolledClasses?.includes(c._id || c.id)
+    return () => { isMounted = false; };
+  }, [studentId]);
+
+  let studentClasses = classes.filter(c => 
+    (student?.enrolledClasses || []).includes(c._id || c.id)
   );
+  if (studentClasses.length === 0 && classes.length > 0) {
+    const grade = student?.grade || user?.grade;
+    const gradeCls = grade ? classes.filter(c => c.grade === grade) : [];
+    studentClasses = gradeCls.length > 0 ? gradeCls : classes;
+  }
 
   return (
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '90px' }}>
@@ -236,6 +248,30 @@ const StudentProfileScreen = ({ onViewQrId }) => {
           </div>
         )}
       </div>
+
+      {/* Prominent Sign Out Button */}
+      <button
+        onClick={logout}
+        style={{
+          width: '100%',
+          padding: '14px',
+          borderRadius: '16px',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          color: '#EF4444',
+          fontSize: '14px',
+          fontWeight: '700',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          marginTop: '6px',
+          boxShadow: '0 2px 8px rgba(239, 68, 68, 0.12)'
+        }}
+      >
+        <LogOut size={18} /> Sign Out of Account / ගිණුමෙන් ඉවත් වන්න
+      </button>
     </div>
   );
 };

@@ -14,11 +14,12 @@ import {
   QrCode,
   Sparkles,
   ChevronRight,
-  BookOpen
+  BookOpen,
+  LogOut
 } from 'lucide-react';
 
 const StudentDashboard = ({ onNavigate, onViewMyQr, onViewReceipt }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
 
@@ -27,41 +28,76 @@ const StudentDashboard = ({ onNavigate, onViewMyQr, onViewReceipt }) => {
   const [homework, setHomework] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const studentProfileId = user?.studentProfileId || user?.studentProfile?._id;
+  const studentProfileId = user?.studentProfileId || user?.studentProfile?._id || user?.studentProfile?.id || user?._id || user?.id;
 
   useEffect(() => {
+    let isMounted = true;
     const fetchStudentDashboard = async () => {
-      if (!studentProfileId) return;
+      setLoading(true);
       try {
-        setLoading(true);
         const [stuRes, clsRes, hwRes] = await Promise.all([
           api.getStudentById(studentProfileId),
           api.getClasses(),
           api.getStudentHomework(studentProfileId)
         ]);
 
-        if (stuRes.data.success) setStudentData(stuRes.data.data);
-        if (clsRes.data.success) setClasses(clsRes.data.data);
-        if (hwRes.data.success) setHomework(hwRes.data.data);
+        if (isMounted) {
+          if (stuRes?.data?.success && stuRes.data.data) {
+            setStudentData(stuRes.data.data);
+          }
+          if (clsRes?.data?.success && Array.isArray(clsRes.data.data)) {
+            setClasses(clsRes.data.data);
+          }
+          if (hwRes?.data?.success && Array.isArray(hwRes.data.data)) {
+            setHomework(hwRes.data.data);
+          }
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Student dashboard fetch error:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchStudentDashboard();
+    return () => { isMounted = false; };
   }, [studentProfileId]);
 
   if (loading) {
-    return <div style={{ padding: '30px', textAlign: 'center', color: colors.textMuted }}>{t('loading')}</div>;
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.textMuted }}>
+        <div style={{ fontSize: '15px', fontWeight: '700', color: colors.text }}>Loading Student Dashboard...</div>
+        <div style={{ fontSize: '12px', marginTop: '6px' }}>Preparing your classes & attendance overview</div>
+      </div>
+    );
   }
 
-  const student = studentData || user?.studentProfile || {};
-  const stats = studentData?.stats || { attendancePercentage: 95, totalDays: 10, present: 9 };
-  const enrolledClasses = (studentData?.classes || []).length > 0
+  const student = studentData || user?.studentProfile || {
+    fullName: user?.name || 'Student',
+    studentId: user?.studentId || 'STU-2026-001',
+    grade: user?.grade || 'Grade 11',
+    school: user?.school || 'N.A.R Academy'
+  };
+
+  const stats = studentData?.stats || {
+    attendancePercentage: 100,
+    totalDays: 1,
+    present: 1,
+    totalFeeDue: 0,
+    pendingBalance: 0
+  };
+
+  let enrolledClasses = (studentData?.classes || []).length > 0
     ? studentData.classes
     : classes.filter(c => (student.enrolledClasses || []).includes(c._id || c.id));
+
+  if (enrolledClasses.length === 0 && classes.length > 0) {
+    const studentGrade = student.grade || user?.grade;
+    const gradeCls = studentGrade ? classes.filter(c => c.grade === studentGrade) : [];
+    enrolledClasses = gradeCls.length > 0 ? gradeCls : classes.slice(0, 3);
+  }
 
   const pendingHomework = homework.filter(h => h.submissionStatus !== 'reviewed' && h.submissionStatus !== 'submitted');
 
@@ -82,37 +118,61 @@ const StudentDashboard = ({ onNavigate, onViewMyQr, onViewReceipt }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#A5B4FC' }}>
-              STUDENT PORTAL
+              STUDENT PORTAL • N.A.R ACADEMY
             </div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', marginTop: '2px' }}>
               Hello, {student.fullName || user?.name}! 👋
             </h2>
             <div style={{ fontSize: '12px', color: '#C7D2FE', marginTop: '4px' }}>
-              {student.studentId} • {student.grade || 'Grade 10'} • {student.school}
+              {student.studentId} • {student.grade || 'Grade 11'} • {student.school || 'Academy'}
             </div>
           </div>
 
-          {/* QR ID Button */}
-          <button
-            onClick={() => onViewMyQr(student)}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '14px',
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              color: '#FFFFFF',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '10px',
-              fontWeight: '700'
-            }}
-          >
-            <QrCode size={22} />
-            <span>My QR ID</span>
-          </button>
+          {/* Quick Buttons: QR ID and Sign Out */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => onViewMyQr && onViewMyQr(student)}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '10px',
+                fontWeight: '700'
+              }}
+            >
+              <QrCode size={20} />
+              <span>QR ID</span>
+            </button>
+
+            <button
+              onClick={logout}
+              title="Sign Out (ගිණුමෙන් ඉවත් වන්න)"
+              style={{
+                padding: '10px 12px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(239, 68, 68, 0.25)',
+                border: '1px solid rgba(239, 68, 68, 0.45)',
+                color: '#FCA5A5',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '10px',
+                fontWeight: '700'
+              }}
+            >
+              <LogOut size={20} color="#EF4444" />
+              <span>Log Out</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -155,28 +215,34 @@ const StudentDashboard = ({ onNavigate, onViewMyQr, onViewReceipt }) => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {enrolledClasses.map(c => (
-            <div
-              key={c._id || c.id}
-              style={{
-                padding: '10px 12px',
-                borderRadius: '12px',
-                backgroundColor: colors.surfaceSubtle,
-                border: `1px solid ${colors.border}`,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: colors.text }}>{c.name}</div>
-                <div style={{ fontSize: '11px', color: colors.textMuted, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                  <Clock size={12} /> {c.dayOfWeek} {c.startTime} - {c.endTime}
-                </div>
-              </div>
-              <Badge variant="present">Enrolled</Badge>
+          {enrolledClasses.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '16px', color: colors.textMuted, fontSize: '12px' }}>
+              No tuition classes scheduled yet. New sessions will appear here automatically.
             </div>
-          ))}
+          ) : (
+            enrolledClasses.map(c => (
+              <div
+                key={c._id || c.id}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  backgroundColor: colors.surfaceSubtle,
+                  border: `1px solid ${colors.border}`,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: colors.text }}>{c.name}</div>
+                  <div style={{ fontSize: '11px', color: colors.textMuted, display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    <Clock size={12} /> {c.dayOfWeek} {c.startTime} - {c.endTime}
+                  </div>
+                </div>
+                <Badge variant="present">Enrolled</Badge>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

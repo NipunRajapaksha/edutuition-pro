@@ -16,35 +16,53 @@ const StudentResultsScreen = () => {
   const [performance, setPerformance] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const studentProfileId = user?.studentProfileId || user?.studentProfile?._id;
+  const studentProfileId = user?.studentProfileId || user?.studentProfile?._id || user?.studentProfile?.id || user?._id || user?.id;
 
   useEffect(() => {
+    let isMounted = true;
     const fetchResults = async () => {
-      if (!studentProfileId) return;
+      setLoading(true);
       try {
-        setLoading(true);
         const [stuRes, perfRes] = await Promise.all([
           api.getStudentById(studentProfileId),
           api.getStudentPerformance(studentProfileId)
         ]);
 
-        if (stuRes.data.success) setStudent(stuRes.data.data);
-        if (perfRes.data.success) setPerformance(perfRes.data.data);
+        if (isMounted) {
+          if (stuRes?.data?.success && stuRes.data.data) {
+            setStudent(stuRes.data.data);
+          }
+          if (perfRes?.data?.success && perfRes.data.data) {
+            setPerformance(perfRes.data.data);
+          }
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching student results:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchResults();
+    return () => { isMounted = false; };
   }, [studentProfileId]);
 
   if (loading) {
-    return <div style={{ padding: '30px', textAlign: 'center', color: colors.textMuted }}>{t('loading')}</div>;
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.textMuted }}>
+        <div style={{ fontSize: '15px', fontWeight: '700', color: colors.text }}>Loading Academic Results...</div>
+        <div style={{ fontSize: '12px', marginTop: '6px' }}>Fetching your exam marks and class progression</div>
+      </div>
+    );
   }
 
   const marks = student?.recentMarks || [];
-  const metrics = performance?.metrics || { averageMark: 85, latestRank: 1 };
+  const metrics = performance?.metrics || { 
+    averageMark: marks.length > 0 ? Math.round(marks.reduce((acc, m) => acc + (m.percentage || 0), 0) / marks.length) : 0, 
+    latestRank: marks.length > 0 ? 1 : 0 
+  };
+  const progressionData = (performance?.examProgression && performance.examProgression.length > 0)
+    ? performance.examProgression
+    : (performance?.trend || []);
 
   return (
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '90px' }}>
@@ -73,28 +91,32 @@ const StudentResultsScreen = () => {
             LATEST CLASS RANK
           </div>
           <div style={{ fontSize: '24px', fontWeight: '800', color: '#6366F1', marginTop: '4px' }}>
-            #{metrics.latestRank}
+            {metrics.latestRank > 0 ? `#${metrics.latestRank}` : '-'}
           </div>
         </div>
       </div>
 
       {/* Marks Progress Graph */}
-      <div style={{ backgroundColor: colors.surface, borderRadius: '18px', padding: '18px', border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}>
-        <h3 style={{ fontSize: '14px', fontWeight: '800', color: colors.text, marginBottom: '10px' }}>
-          {t('examProgression')}
-        </h3>
-        <ProgressLineChart data={performance?.examProgression || []} />
-      </div>
+      {progressionData.length > 0 && (
+        <div style={{ backgroundColor: colors.surface, borderRadius: '18px', padding: '18px', border: `1px solid ${colors.border}`, boxShadow: colors.cardShadow }}>
+          <h3 style={{ fontSize: '14px', fontWeight: '800', color: colors.text, marginBottom: '10px' }}>
+            {t('examProgression')}
+          </h3>
+          <ProgressLineChart data={progressionData} />
+        </div>
+      )}
 
       {/* Exam Results Cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <h3 style={{ fontSize: '15px', fontWeight: '800', color: colors.text }}>
-          Evaluations & Test Papers
+          Evaluations & Test Papers ({marks.length})
         </h3>
 
         {marks.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '24px', backgroundColor: colors.surface, borderRadius: '16px', color: colors.textMuted, fontSize: '12px' }}>
-            No exam marks recorded yet.
+          <div style={{ textAlign: 'center', padding: '30px 20px', backgroundColor: colors.surface, borderRadius: '16px', border: `1px solid ${colors.border}`, color: colors.textMuted, fontSize: '12px' }}>
+            <Award size={32} color={colors.primaryLight} style={{ margin: '0 auto 8px auto', opacity: 0.8 }} />
+            <div style={{ fontSize: '14px', fontWeight: '700', color: colors.text }}>No Exam Marks Recorded Yet</div>
+            <div style={{ marginTop: '4px' }}>When exam papers are marked by your teacher, your scores and class rank will appear here.</div>
           </div>
         ) : (
           marks.map((m, i) => (

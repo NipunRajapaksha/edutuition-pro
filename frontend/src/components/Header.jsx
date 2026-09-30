@@ -40,38 +40,49 @@ const Header = ({ onNotificationClick, unreadCount = 0, instituteName, onProfile
         boxShadow: isDark ? '0 2px 10px rgba(0,0,0,0.5)' : '0 1px 3px rgba(0,0,0,0.05)'
       }}
     >
+      {/* Embedded CSS for perfect mobile header responsiveness */}
+      <style>{`
+        @media (max-width: 520px) {
+          .header-brand-title { max-width: 105px !important; font-size: 13px !important; }
+          .header-brand-tagline { display: none !important; }
+          .header-role-text { display: none !important; }
+          .header-role-badge { padding: 4px 6px !important; }
+        }
+      `}</style>
+
       {/* Brand */}
       <div 
         onClick={onProfileClick}
-        style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: onProfileClick ? 'pointer' : 'default' }}
+        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: onProfileClick ? 'pointer' : 'default', minWidth: 0, flexShrink: 1 }}
       >
         <div
           style={{
-            width: '38px',
-            height: '38px',
+            width: '36px',
+            height: '36px',
             borderRadius: '10px',
             background: 'linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#FFFFFF',
-            boxShadow: '0 4px 10px rgba(79, 70, 229, 0.4)'
+            boxShadow: '0 4px 10px rgba(79, 70, 229, 0.4)',
+            flexShrink: 0
           }}
         >
-          <GraduationCap size={22} />
+          <GraduationCap size={20} />
         </div>
-        <div>
-          <div style={{ fontSize: '15px', fontWeight: '800', color: colors.text, letterSpacing: '-0.02em', lineHeight: 1.1, maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <div className="header-brand-title" style={{ fontSize: '15px', fontWeight: '800', color: colors.text, letterSpacing: '-0.02em', lineHeight: 1.1, maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {instituteName || t('appName')}
           </div>
-          <div style={{ fontSize: '10px', color: colors.textMuted, fontWeight: '500' }}>
+          <div className="header-brand-tagline" style={{ fontSize: '10px', color: colors.textMuted, fontWeight: '500' }}>
             {t('tagline')}
           </div>
         </div>
       </div>
 
       {/* Right Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
         {/* Language switch */}
         <button
           onClick={toggleLanguage}
@@ -79,18 +90,19 @@ const Header = ({ onNotificationClick, unreadCount = 0, instituteName, onProfile
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            padding: '6px 10px',
+            gap: '3px',
+            padding: '5px 8px',
             borderRadius: '8px',
             backgroundColor: colors.surfaceSubtle,
             border: `1px solid ${colors.border}`,
             color: colors.text,
             cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: '600'
+            fontSize: '11px',
+            fontWeight: '600',
+            flexShrink: 0
           }}
         >
-          <Globe size={14} style={{ color: colors.primary }} />
+          <Globe size={13} style={{ color: colors.primary }} />
           <span>{language === 'en' ? 'සිං' : 'EN'}</span>
         </button>
 
@@ -99,15 +111,16 @@ const Header = ({ onNotificationClick, unreadCount = 0, instituteName, onProfile
           onClick={toggleTheme}
           title="Toggle Light/Dark Theme"
           style={{
-            padding: '6px 8px',
+            padding: '5px 7px',
             borderRadius: '8px',
             backgroundColor: colors.surfaceSubtle,
             border: `1px solid ${colors.border}`,
             color: colors.text,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            flexShrink: 0
           }}
         >
-          {isDark ? <Sun size={15} style={{ color: '#FBBF24' }} /> : <Moon size={15} style={{ color: '#4B5563' }} />}
+          {isDark ? <Sun size={14} style={{ color: '#FBBF24' }} /> : <Moon size={14} style={{ color: '#4B5563' }} />}
         </button>
 
         {/* Notifications */}
@@ -116,15 +129,16 @@ const Header = ({ onNotificationClick, unreadCount = 0, instituteName, onProfile
           title="Notifications"
           style={{
             position: 'relative',
-            padding: '6px 8px',
+            padding: '5px 7px',
             borderRadius: '8px',
             backgroundColor: colors.surfaceSubtle,
             border: `1px solid ${colors.border}`,
             color: colors.text,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            flexShrink: 0
           }}
         >
-          <Bell size={15} />
+          <Bell size={14} />
           {unreadCount > 0 && (
             <span
               style={{
@@ -136,12 +150,12 @@ const Header = ({ onNotificationClick, unreadCount = 0, instituteName, onProfile
                 fontSize: '9px',
                 fontWeight: 'bold',
                 borderRadius: '9999px',
-                minWidth: '16px',
-                height: '16px',
+                minWidth: '15px',
+                height: '15px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '0 3px'
+                padding: '0 2px'
               }}
             >
               {unreadCount}
@@ -151,37 +165,47 @@ const Header = ({ onNotificationClick, unreadCount = 0, instituteName, onProfile
 
         {/* Role badge */}
         <div
+          className="header-role-badge"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '20px',
+            gap: '4px',
+            padding: '4px 8px',
+            borderRadius: '16px',
             backgroundColor: 'rgba(79, 70, 229, 0.12)',
             border: '1px solid rgba(79, 70, 229, 0.25)',
             fontSize: '11px',
             fontWeight: '600',
-            color: colors.primaryLight
+            color: colors.primaryLight,
+            flexShrink: 0
           }}
         >
-          <ShieldCheck size={13} />
-          <span>{getRoleLabel()}</span>
+          <ShieldCheck size={12} />
+          <span className="header-role-text">{getRoleLabel()}</span>
         </div>
 
-        {/* Logout */}
+        {/* High-visibility Logout Button */}
         <button
           onClick={logout}
-          title="Log Out"
+          title="Log Out (ගිණුමෙන් ඉවත් වන්න)"
           style={{
-            padding: '6px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '5px 9px',
             borderRadius: '8px',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            color: '#EF4444',
-            cursor: 'pointer'
+            backgroundColor: '#EF4444',
+            border: '1px solid #DC2626',
+            color: '#FFFFFF',
+            cursor: 'pointer',
+            fontSize: '11px',
+            fontWeight: '700',
+            flexShrink: 0,
+            boxShadow: '0 2px 6px rgba(239, 68, 68, 0.25)'
           }}
         >
-          <LogOut size={15} />
+          <LogOut size={13} color="#FFFFFF" />
+          <span>Exit</span>
         </button>
       </div>
     </header>

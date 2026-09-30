@@ -30,18 +30,17 @@ const StudentHomeworkScreen = () => {
   const [fileName, setFileName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const studentProfileId = user?.studentProfileId || user?.studentProfile?._id;
+  const studentProfileId = user?.studentProfileId || user?.studentProfile?._id || user?.studentProfile?.id || user?._id || user?.id;
 
   const fetchHomework = async () => {
-    if (!studentProfileId) return;
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await api.getStudentHomework(studentProfileId);
-      if (res.data.success) {
+      if (res?.data?.success && Array.isArray(res.data.data)) {
         setHomework(res.data.data);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching homework:', err);
     } finally {
       setLoading(false);
     }

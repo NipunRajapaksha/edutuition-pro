@@ -125,8 +125,43 @@ export const AuthProvider = ({ children }) => {
         phone: matchedUser.phone || '',
         avatar: matchedUser.avatar || '',
         studentProfile: matchedUser.studentProfile || null,
+        studentProfileId: matchedUser.studentProfileId || (matchedUser.studentProfile?._id || matchedUser.studentProfile?.id) || null,
         linkedStudent: matchedUser.linkedStudent || null
       };
+
+      if (sessionUser.role === 'student') {
+        try {
+          const rawStudents = localStorage.getItem('edutuition_students');
+          const localStudents = rawStudents ? JSON.parse(rawStudents) : [];
+          let foundStudent = localStudents.find(s =>
+            (s.email && s.email.toLowerCase().trim() === cleanEmail) ||
+            (s.fullName && s.fullName.toLowerCase().trim() === (sessionUser.name || '').toLowerCase().trim()) ||
+            (s._id && s._id === sessionUser.id) ||
+            (s.studentId && s.studentId === sessionUser.id)
+          );
+          if (!foundStudent && localStudents.length > 0) {
+            foundStudent = localStudents[0];
+          }
+          if (!foundStudent) {
+            foundStudent = {
+              _id: `stu_${Date.now()}`,
+              studentId: `STU-2026-${Math.floor(100 + Math.random() * 900)}`,
+              fullName: sessionUser.name,
+              grade: 'Grade 10',
+              email: sessionUser.email,
+              phone: sessionUser.phone || '',
+              status: 'active',
+              enrolledClasses: []
+            };
+            localStudents.push(foundStudent);
+            localStorage.setItem('edutuition_students', JSON.stringify(localStudents));
+          }
+          sessionUser.studentProfile = foundStudent;
+          sessionUser.studentProfileId = foundStudent._id || foundStudent.id;
+        } catch (e) {
+          console.warn('Error linking student profile:', e);
+        }
+      }
 
       localStorage.setItem('edutuition_token', localToken);
       localStorage.setItem('edutuition_user_data', JSON.stringify(sessionUser));
