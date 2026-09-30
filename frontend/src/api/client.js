@@ -741,10 +741,60 @@ export const api = {
   getStudentHomework: async (studentId) => {
     try {
       const res = await client.get(`/homework/student/${studentId}`);
-      if (res?.data?.success) return res;
+      if (res?.data?.success && Array.isArray(res.data.data)) return res;
     } catch {}
-    const hw = getLocal('edutuition_homework', []);
-    return { data: { success: true, data: hw } };
+    const allHw = getLocal('edutuition_homework', []);
+    const students = getLocal('edutuition_students', []);
+    const classes = getLocal('edutuition_classes', []);
+
+    // 1. Resolve student
+    let student = students.find(s => 
+      (s._id || s.id) === studentId || 
+      s.studentId === studentId || 
+      s.userId === studentId ||
+      (s.email && studentId && s.email.toLowerCase() === String(studentId).toLowerCase())
+    );
+
+    if (!student) {
+      const authUser = getLocal('edutuition_auth_user', null);
+      if (authUser && (authUser.id === studentId || authUser._id === studentId || authUser.email === studentId || authUser.studentProfileId === studentId)) {
+        student = authUser.studentProfile || authUser;
+      }
+    }
+
+    // 2. Identify the classes that belong to this student
+    let studentClassIds = (student?.enrolledClasses || []).map(String);
+
+    // If student has no explicitly enrolled classes, match by student's grade
+    if (studentClassIds.length === 0 && student?.grade) {
+      const matchingClasses = classes.filter(c => c.grade === student.grade);
+      studentClassIds = matchingClasses.map(c => String(c._id || c.id));
+    }
+
+    // 3. Filter homework: Only include homework whose classId matches one of the student's classes
+    let studentHw = [];
+    if (studentClassIds.length > 0) {
+      studentHw = allHw.filter(h => studentClassIds.includes(String(h.classId)));
+    } else {
+      // If student is not enrolled in any class and has no matching grade, do not show other classes' homework
+      studentHw = [];
+    }
+
+    // 4. Attach personal submission status if available
+    const enrichedHw = studentHw.map(hw => {
+      const hwId = hw._id || hw.id;
+      const submissions = getLocal(`edutuition_hw_subs_${hwId}`, []);
+      const mySub = submissions.find(s => 
+        s.studentId === studentId || 
+        (student && (s.studentId === student._id || s.studentId === student.id || s.studentId === student.studentId))
+      );
+      return {
+        ...hw,
+        submissionStatus: mySub ? (mySub.status || 'submitted') : (hw.submissionStatus || 'pending')
+      };
+    });
+
+    return { data: { success: true, data: enrichedHw } };
   },
   createHomework: async (data) => {
     let created = null;
@@ -759,6 +809,8 @@ export const api = {
         _id: `hw_${Date.now()}`,
         classId: data.classId,
         className: cls?.name || 'Tuition Class',
+        subject: cls?.subject || 'Subject',
+        grade: cls?.grade || 'Grade',
         title: data.title,
         description: data.description || '',
         deadline: data.deadline,
@@ -776,6 +828,18 @@ export const api = {
       const res = await client.post('/homework/submit', data);
       if (res?.data?.success) return res;
     } catch {}
+    const hwId = data.homeworkId;
+    const submissions = getLocal(`edutuition_hw_subs_${hwId}`, []);
+    const newSub = {
+      _id: `sub_${Date.now()}`,
+      homeworkId: hwId,
+      studentId: data.studentId,
+      content: data.content || '',
+      attachments: data.attachments || [],
+      submittedAt: new Date().toISOString(),
+      status: 'submitted'
+    };
+    setLocal(`edutuition_hw_subs_${hwId}`, [newSub, ...submissions.filter(s => s.studentId !== data.studentId)]);
     return { data: { success: true, message: 'Homework submitted successfully' } };
   },
   reviewHomeworkSubmission: async (id, data) => {

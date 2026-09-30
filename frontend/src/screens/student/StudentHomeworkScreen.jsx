@@ -35,10 +35,28 @@ const StudentHomeworkScreen = () => {
   const fetchHomework = async () => {
     setLoading(true);
     try {
-      const res = await api.getStudentHomework(studentProfileId);
-      if (res?.data?.success && Array.isArray(res.data.data)) {
-        setHomework(res.data.data);
+      const [stuRes, hwRes, clsRes] = await Promise.all([
+        api.getStudentById(studentProfileId),
+        api.getStudentHomework(studentProfileId),
+        api.getClasses()
+      ]);
+
+      const stuData = stuRes?.data?.data || user?.studentProfile;
+      let enrolledClassIds = (stuData?.enrolledClasses || []).map(String);
+      if (enrolledClassIds.length === 0 && stuData?.grade && clsRes?.data?.success && Array.isArray(clsRes.data.data)) {
+        enrolledClassIds = clsRes.data.data.filter(c => c.grade === stuData.grade).map(c => String(c._id || c.id));
       }
+
+      let list = [];
+      if (hwRes?.data?.success && Array.isArray(hwRes.data.data)) {
+        list = hwRes.data.data;
+      }
+      if (enrolledClassIds.length > 0) {
+        list = list.filter(h => enrolledClassIds.includes(String(h.classId)));
+      } else {
+        list = [];
+      }
+      setHomework(list);
     } catch (err) {
       console.error('Error fetching homework:', err);
     } finally {
@@ -91,8 +109,12 @@ const StudentHomeworkScreen = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '30px', color: colors.textMuted }}>{t('loading')}</div>
       ) : homework.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '30px', backgroundColor: colors.surface, borderRadius: '16px', border: `1px solid ${colors.border}`, color: colors.textMuted }}>
-          No homework assigned at this time.
+        <div style={{ textAlign: 'center', padding: '36px 20px', backgroundColor: colors.surface, borderRadius: '16px', border: `1px solid ${colors.border}`, color: colors.textMuted }}>
+          <FileCheck size={36} color={colors.primaryLight} style={{ margin: '0 auto 10px auto', opacity: 0.8 }} />
+          <div style={{ fontSize: '15px', fontWeight: '700', color: colors.text }}>No Homework for Your Enrolled Classes</div>
+          <div style={{ fontSize: '12px', marginTop: '6px', maxWidth: '320px', margin: '6px auto 0 auto' }}>
+            You're all caught up! When assignments are published for your enrolled subjects, they will appear right here.
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

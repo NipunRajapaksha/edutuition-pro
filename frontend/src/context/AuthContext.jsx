@@ -185,8 +185,15 @@ export const AuthProvider = ({ children }) => {
     return await login('admin@tuition.lk', 'admin123');
   };
 
-  // Add custom user (Used by Admin / Teacher to create new Teacher, Student, Parent accounts)
+  // Add custom user (Used by Admin / Teacher to create accounts)
   const addCustomUser = async (userData) => {
+    const isCallerAdmin = user?.isAdmin === true || user?.role === 'admin' || user?.email === 'admin@tuition.lk';
+
+    // Security check: Only Admin can create Teacher accounts
+    if (!isCallerAdmin && userData.role === 'teacher') {
+      throw new Error('Only the Admin account can create new Teacher accounts.');
+    }
+
     let createdUser = null;
     try {
       const res = await api.createUser(userData);
@@ -198,16 +205,56 @@ export const AuthProvider = ({ children }) => {
     }
 
     const cleanEmail = userData.email ? userData.email.toLowerCase().trim() : '';
+    const assignedRole = userData.role || (isCallerAdmin ? 'teacher' : 'student');
     const newUser = {
       id: createdUser?._id || createdUser?.id || `custom_user_${Date.now()}`,
       _id: createdUser?._id || createdUser?.id || `custom_user_${Date.now()}`,
       name: userData.name,
       email: cleanEmail,
       password: userData.password || 'password123',
-      role: userData.role || 'teacher',
+      role: assignedRole,
       phone: userData.phone || '',
+      grade: userData.grade || '',
+      linkedStudentId: userData.linkedStudentId || '',
       createdAt: new Date().toISOString()
     };
+
+    // If a student user is created, immediately create/sync their student profile in edutuition_students
+    if (assignedRole === 'student') {
+      try {
+        const storedStudents = localStorage.getItem('edutuition_students');
+        const students = storedStudents ? JSON.parse(storedStudents) : [];
+        let existingStudent = students.find(s => s.email?.toLowerCase().trim() === cleanEmail);
+        const enrolledClasses = userData.classId ? [userData.classId] : [];
+
+        if (!existingStudent) {
+          const studentId = `STU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+          const newStudentProfile = {
+            _id: `stu_${Date.now()}`,
+            id: `stu_${Date.now()}`,
+            userId: newUser.id,
+            studentId,
+            fullName: newUser.name,
+            email: cleanEmail,
+            phone: newUser.phone || '',
+            grade: userData.grade || 'Grade 11',
+            school: userData.school || 'N.A.R Academy',
+            enrolledClasses,
+            status: 'active',
+            createdAt: new Date().toISOString()
+          };
+          students.push(newStudentProfile);
+          localStorage.setItem('edutuition_students', JSON.stringify(students));
+          newUser.studentProfileId = newStudentProfile._id;
+          newUser.studentProfile = newStudentProfile;
+        } else if (userData.classId && !(existingStudent.enrolledClasses || []).includes(userData.classId)) {
+          existingStudent.enrolledClasses = [...(existingStudent.enrolledClasses || []), userData.classId];
+          localStorage.setItem('edutuition_students', JSON.stringify(students));
+        }
+      } catch (err) {
+        console.warn('Error linking student profile:', err);
+      }
+    }
 
     const customUsers = getCustomUsers().filter(u => u.email?.toLowerCase().trim() !== cleanEmail);
     customUsers.push(newUser);
@@ -238,7 +285,7 @@ export const AuthProvider = ({ children }) => {
         user,
         token,
         role: user?.role || null,
-        isAdmin: user?.role === 'teacher' || user?.isAdmin === true || user?.email === 'admin@tuition.lk',
+        isAdmin: user?.isAdmin === true || user?.role === 'admin' || user?.email === 'admin@tuition.lk',
         loading,
         login,
         quickLogin,

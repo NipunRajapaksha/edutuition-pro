@@ -39,15 +39,23 @@ const UserManagementScreen = ({ onBack }) => {
   const [copiedId, setCopiedId] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
 
+  const isCurrentUserAdmin = user?.email === 'admin@tuition.lk' || user?.isAdmin === true || user?.role === 'admin';
+
   // Form State
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: 'password123',
-    role: 'teacher',
+    role: isCurrentUserAdmin ? 'teacher' : 'student',
     phone: '',
+    grade: 'Grade 11',
+    classId: '',
+    linkedStudentId: '',
     subjects: ''
   });
+
+  const [allClasses, setAllClasses] = useState([]);
+  const [allStudents, setAllStudents] = useState([]);
 
   // Load users from API or Local
   const fetchUsers = async () => {
@@ -81,10 +89,34 @@ const UserManagementScreen = ({ onBack }) => {
     setUsers([...defaults, ...customUsers]);
   };
 
-
   useEffect(() => {
     fetchUsers();
+    api.getClasses().then(res => {
+      if (res?.data?.success && Array.isArray(res.data.data)) {
+        setAllClasses(res.data.data);
+      }
+    }).catch(() => {});
+    api.getStudents().then(res => {
+      if (res?.data?.success && Array.isArray(res.data.data)) {
+        setAllStudents(res.data.data);
+      }
+    }).catch(() => {});
   }, []);
+
+  const openCreateModal = () => {
+    setFormData({
+      name: '',
+      email: '',
+      password: 'password123',
+      role: isCurrentUserAdmin ? 'teacher' : 'student',
+      phone: '',
+      grade: 'Grade 11',
+      classId: '',
+      linkedStudentId: '',
+      subjects: ''
+    });
+    setShowCreateModal(true);
+  };
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -93,21 +125,19 @@ const UserManagementScreen = ({ onBack }) => {
       return;
     }
 
+    if (!isCurrentUserAdmin && formData.role === 'teacher') {
+      alert('Security Alert: Only Admin accounts can create Teacher accounts. Teachers can only create Student and Parent accounts.');
+      return;
+    }
+
     try {
       await addCustomUser(formData);
       setStatusMsg({ type: 'success', text: `Account for ${formData.name} created successfully!` });
       setShowCreateModal(false);
-      setFormData({
-        name: '',
-        email: '',
-        password: 'password123',
-        role: 'teacher',
-        phone: '',
-        subjects: ''
-      });
+      openCreateModal();
       fetchUsers();
     } catch (err) {
-      setStatusMsg({ type: 'error', text: 'Error creating account. Please try again.' });
+      setStatusMsg({ type: 'error', text: err.message || 'Error creating account. Please try again.' });
     }
   };
 
@@ -231,7 +261,7 @@ const UserManagementScreen = ({ onBack }) => {
           </button>
 
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={openCreateModal}
             style={{
               padding: '8px 14px',
               borderRadius: '12px',
@@ -543,12 +573,18 @@ const UserManagementScreen = ({ onBack }) => {
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '6px' }}>
                   ACCOUNT ROLE (ගිණුම් වර්ගය)
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                  {[
-                    { id: 'teacher', label: '👨‍🏫 Teacher' },
-                    { id: 'student', label: '👨‍🎓 Student' },
-                    { id: 'parent', label: '👪 Parent' }
-                  ].map(r => (
+                <div style={{ display: 'grid', gridTemplateColumns: isCurrentUserAdmin ? '1fr 1fr 1fr' : '1fr 1fr', gap: '8px' }}>
+                  {(isCurrentUserAdmin 
+                    ? [
+                        { id: 'teacher', label: '👨‍🏫 Teacher' },
+                        { id: 'student', label: '👨‍🎓 Student' },
+                        { id: 'parent', label: '👪 Parent' }
+                      ]
+                    : [
+                        { id: 'student', label: '👨‍🎓 Student' },
+                        { id: 'parent', label: '👪 Parent' }
+                      ]
+                  ).map(r => (
                     <button
                       key={r.id}
                       type="button"
@@ -569,7 +605,108 @@ const UserManagementScreen = ({ onBack }) => {
                     </button>
                   ))}
                 </div>
+
+                {!isCurrentUserAdmin && (
+                  <div style={{ marginTop: '8px', padding: '8px 10px', borderRadius: '8px', backgroundColor: 'rgba(79, 70, 229, 0.08)', border: `1px solid ${colors.border}`, fontSize: '11px', color: colors.textMuted, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Lock size={13} color={colors.primaryLight} style={{ flexShrink: 0 }} />
+                    <span>Logged in as Teacher. Only the Admin (admin@tuition.lk) can create Teacher logins.</span>
+                  </div>
+                )}
               </div>
+
+              {/* Student Grade & Class Selection */}
+              {formData.role === 'student' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', backgroundColor: colors.surfaceSubtle, padding: '10px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '4px' }}>
+                      Grade (ශ්‍රේණිය)
+                    </label>
+                    <select
+                      value={formData.grade}
+                      onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: `1px solid ${colors.border}`,
+                        backgroundColor: colors.surface,
+                        color: colors.text,
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="Grade 6">Grade 6</option>
+                      <option value="Grade 7">Grade 7</option>
+                      <option value="Grade 8">Grade 8</option>
+                      <option value="Grade 9">Grade 9</option>
+                      <option value="Grade 10">Grade 10</option>
+                      <option value="Grade 11">Grade 11 (O/L)</option>
+                      <option value="Grade 12">Grade 12 (A/L)</option>
+                      <option value="Grade 13">Grade 13 (A/L)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '4px' }}>
+                      Enrolled Class (පන්තිය)
+                    </label>
+                    <select
+                      value={formData.classId}
+                      onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: `1px solid ${colors.border}`,
+                        backgroundColor: colors.surface,
+                        color: colors.text,
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="">-- All / Grade Match --</option>
+                      {allClasses.map(c => (
+                        <option key={c._id || c.id} value={c._id || c.id}>
+                          {c.name} ({c.grade})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Parent Linked Student Selection */}
+              {formData.role === 'parent' && allStudents.length > 0 && (
+                <div style={{ backgroundColor: colors.surfaceSubtle, padding: '10px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '4px' }}>
+                    Link Child / Student (දරුවා තෝරන්න)
+                  </label>
+                  <select
+                    value={formData.linkedStudentId}
+                    onChange={(e) => setFormData({ ...formData, linkedStudentId: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: `1px solid ${colors.border}`,
+                      backgroundColor: colors.surface,
+                      color: colors.text,
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="">-- Select Child (Student) --</option>
+                    {allStudents.map(s => (
+                      <option key={s._id || s.id} value={s._id || s.id}>
+                        {s.fullName} ({s.studentId} • {s.grade})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Full Name */}
               <div>
