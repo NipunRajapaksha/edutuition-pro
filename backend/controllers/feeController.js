@@ -288,9 +288,83 @@ const getFinancialOverview = async (req, res, next) => {
   }
 };
 
+const updatePayment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      amountPaid,
+      amountDue,
+      month,
+      year,
+      paymentMethod,
+      paymentDate,
+      transactionId,
+      notes
+    } = req.body;
+
+    const existing = storage.fees.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Fee payment record not found' });
+    }
+
+    const due = amountDue !== undefined ? Number(amountDue) : Number(existing.amountDue || 0);
+    const paid = amountPaid !== undefined ? Number(amountPaid) : Number(existing.amountPaid || 0);
+    const balance = Math.max(0, due - paid);
+
+    let status = 'pending';
+    if (paid >= due && due > 0) {
+      status = 'paid';
+    } else if (paid > 0) {
+      status = 'partially_paid';
+    }
+
+    const updated = storage.fees.findByIdAndUpdate(id, {
+      amountDue: due,
+      amountPaid: paid,
+      balance,
+      status,
+      month: month || existing.month,
+      year: year !== undefined ? Number(year) : existing.year,
+      paymentMethod: paymentMethod || existing.paymentMethod,
+      paymentDate: paymentDate || existing.paymentDate,
+      transactionId: transactionId !== undefined ? transactionId : existing.transactionId,
+      notes: notes !== undefined ? notes : existing.notes
+    });
+
+    res.json({
+      success: true,
+      message: 'Payment record updated successfully',
+      data: updated
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deletePayment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const existing = storage.fees.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Payment record not found' });
+    }
+
+    storage.fees.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: `Payment record ${existing.receiptNumber} deleted successfully`
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getFees,
   recordPayment,
   getReceipt,
-  getFinancialOverview
+  getFinancialOverview,
+  updatePayment,
+  deletePayment
 };

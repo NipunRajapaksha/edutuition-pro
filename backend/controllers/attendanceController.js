@@ -44,6 +44,7 @@ const getAttendance = async (req, res, next) => {
     const absentCount = recordedAttendance.filter(a => a.status === 'absent').length;
     const excusedCount = recordedAttendance.filter(a => a.status === 'excused').length;
     const totalEnrolled = enrolledStudents.length;
+    const notMarkedCount = Math.max(0, totalEnrolled - (presentCount + lateCount + absentCount + excusedCount));
 
     const rate = totalEnrolled > 0 ? Math.round(((presentCount + lateCount) / totalEnrolled) * 100) : 0;
 
@@ -58,6 +59,7 @@ const getAttendance = async (req, res, next) => {
           lateCount,
           absentCount,
           excusedCount,
+          notMarkedCount,
           rate
         },
         roster: studentRoster
@@ -77,6 +79,23 @@ const markSingle = async (req, res, next) => {
     }
 
     const existing = storage.attendance.findOne({ classId, studentId, date });
+
+    if (status === 'not_marked') {
+      if (existing) {
+        storage.attendance.findByIdAndDelete(existing._id);
+      }
+      return res.json({
+        success: true,
+        message: 'Attendance reset to Not Marked',
+        data: {
+          classId,
+          studentId,
+          date,
+          status: 'not_marked'
+        }
+      });
+    }
+
     let record;
 
     if (existing) {
@@ -161,10 +180,23 @@ const markAllPresent = async (req, res, next) => {
       }
     });
 
-    res.json({
-      success: true,
-      message: `Marked all ${enrolledStudents.length} students as Present for ${date}`
-    });
+    res.json({ success: true, message: 'All students marked present' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const resetAllAttendance = async (req, res, next) => {
+  try {
+    const { classId, date } = req.body;
+    if (!classId || !date) {
+      return res.status(400).json({ success: false, message: 'classId and date are required' });
+    }
+
+    const records = storage.attendance.find({ classId, date });
+    records.forEach(r => storage.attendance.findByIdAndDelete(r._id));
+
+    res.json({ success: true, message: 'All attendance reset to Not Marked' });
   } catch (err) {
     next(err);
   }
@@ -283,6 +315,7 @@ module.exports = {
   getAttendance,
   markSingle,
   markAllPresent,
+  resetAllAttendance,
   scanQrAttendance,
   getStudentAttendanceHistory
 };

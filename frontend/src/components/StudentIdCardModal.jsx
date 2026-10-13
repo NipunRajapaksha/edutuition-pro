@@ -8,6 +8,16 @@ const StudentIdCardModal = ({ student, onClose }) => {
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   const [qrSrc, setQrSrc] = useState('');
+  const [instituteName, setInstituteName] = useState(() => {
+    try {
+      const raw = localStorage.getItem('edutuition_settings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.instituteName) return parsed.instituteName;
+      }
+    } catch {}
+    return 'N.A.R ACADEMY';
+  });
 
   useEffect(() => {
     if (student) {
@@ -94,7 +104,7 @@ const StudentIdCardModal = ({ student, onClose }) => {
         <div style={{ textAlign: 'center', marginBottom: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', color: '#A5B4FC', fontWeight: '700', letterSpacing: '0.05em' }}>
             <Shield size={15} />
-            APEX TUITION ACADEMY
+            {instituteName.toUpperCase()}
           </div>
           <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
             ශිල්ප කලා උසස් අධ්‍යාපන ආයතනය

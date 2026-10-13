@@ -3,11 +3,33 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { X, Printer, CheckCircle, ShieldCheck } from 'lucide-react';
 import QRCode from 'qrcode';
+import { api } from '../api/client';
 
 const DigitalReceiptModal = ({ receipt, onClose }) => {
   const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   const [qrSrc, setQrSrc] = useState('');
+  const [instituteInfo, setInstituteInfo] = useState(() => {
+    try {
+      const raw = localStorage.getItem('edutuition_settings');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {
+      instituteName: 'N.A.R Academy',
+      tagline: 'ශිල්ප කලා උසස් අධ්‍යාපන ආයතනය',
+      address: '142 High Level Road, Nugegoda',
+      phone: '011 280 9900',
+      receiptFooterNote: 'Thank you for your timely payment. Keep this receipt safe.'
+    };
+  });
+
+  useEffect(() => {
+    api.getSettings().then(res => {
+      if (res?.data?.success && res.data.data) {
+        setInstituteInfo(res.data.data);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (receipt) {
@@ -37,6 +59,11 @@ const DigitalReceiptModal = ({ receipt, onClose }) => {
   const due = receipt.amountDue || receipt.billing?.amountDue || 0;
   const paid = receipt.amountPaid || receipt.billing?.amountPaid || 0;
   const balance = receipt.balance ?? receipt.billing?.balance ?? 0;
+
+  const instituteName = receipt?.institute?.name || instituteInfo.instituteName || 'N.A.R Academy';
+  const institutePhone = receipt?.institute?.phone || instituteInfo.phone || '011 280 9900';
+  const instituteAddress = receipt?.institute?.address || instituteInfo.address || '142 High Level Road, Nugegoda';
+  const instituteTagline = instituteInfo.tagline || instituteInfo.subTitle || 'ශිල්ප කලා උසස් අධ්‍යාපන ආයතනය';
 
   return (
     <div
@@ -124,13 +151,13 @@ const DigitalReceiptModal = ({ receipt, onClose }) => {
           {/* Header */}
           <div style={{ textAlign: 'center', borderBottom: '2px dashed #D1D5DB', paddingBottom: '16px', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1E1B4B' }}>
-              APEX TUITION ACADEMY
+              {instituteName}
             </h2>
             <div style={{ fontSize: '12px', color: '#6B7280', fontWeight: '500' }}>
-              ශිල්ප කලා උසස් අධ්‍යාපන ආයතනය
+              {instituteTagline}
             </div>
             <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>
-              142 High Level Road, Nugegoda • Tel: 011 280 9900
+              {instituteAddress} • Tel: {institutePhone}
             </div>
             <div
               style={{
@@ -190,6 +217,13 @@ const DigitalReceiptModal = ({ receipt, onClose }) => {
               <span style={{ fontWeight: '700' }}>Rs. {Number(balance).toLocaleString()}</span>
             </div>
           </div>
+
+          {/* Footer Note */}
+          {instituteInfo.receiptFooterNote && (
+            <div style={{ textAlign: 'center', fontSize: '11px', color: '#6B7280', fontStyle: 'italic', marginBottom: '14px', padding: '0 8px' }}>
+              "{instituteInfo.receiptFooterNote}"
+            </div>
+          )}
 
           {/* QR Code Verification & Stamp */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

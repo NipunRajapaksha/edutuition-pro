@@ -4,6 +4,7 @@ const {
   getAttendance,
   markSingle,
   markAllPresent,
+  resetAllAttendance,
   scanQrAttendance,
   getStudentAttendanceHistory
 } = require('../controllers/attendanceController');
@@ -13,6 +14,7 @@ router.get('/', authenticateToken, getAttendance);
 router.get('/student/:studentId', authenticateToken, getStudentAttendanceHistory);
 router.post('/mark', authenticateToken, requireRole(['teacher']), markSingle);
 router.post('/mark-all', authenticateToken, requireRole(['teacher']), markAllPresent);
+router.post('/reset-all', authenticateToken, requireRole(['teacher']), resetAllAttendance);
 router.post('/scan-qr', authenticateToken, scanQrAttendance);
 
 module.exports = router;

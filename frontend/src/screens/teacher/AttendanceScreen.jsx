@@ -14,7 +14,9 @@ import {
   HelpCircle,
   Sparkles,
   RefreshCw,
-  Users
+  Users,
+  X,
+  RotateCcw
 } from 'lucide-react';
 
 const AttendanceScreen = () => {
@@ -83,16 +85,20 @@ const AttendanceScreen = () => {
     }
   };
 
-  const handleToggleStatus = async (studentId, currentStatus) => {
-    const statusCycle = {
-      not_marked: 'present',
-      present: 'late',
-      late: 'absent',
-      absent: 'excused',
-      excused: 'present'
-    };
-    const nextStatus = statusCycle[currentStatus] || 'present';
+  const handleResetAll = async () => {
+    if (!window.confirm(`Are you sure you want to reset all attendance records for ${selectedDate} back to Not Marked?`)) return;
+    setActionLoading(true);
+    try {
+      await api.resetAttendanceAll({ classId: selectedClassId, date: selectedDate });
+      fetchAttendance();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error resetting attendance');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
+  const handleSetStatus = async (studentId, nextStatus) => {
     try {
       await api.markAttendanceSingle({
         classId: selectedClassId,
@@ -106,9 +112,24 @@ const AttendanceScreen = () => {
     }
   };
 
+  const handleToggleStatus = async (studentId, currentStatus) => {
+    const statusCycle = {
+      not_marked: 'present',
+      present: 'late',
+      late: 'absent',
+      absent: 'excused',
+      excused: 'not_marked'
+    };
+    const nextStatus = statusCycle[currentStatus] || 'present';
+    await handleSetStatus(studentId, nextStatus);
+  };
+
   const selectedClass = classes.find(c => (c._id || c.id) === selectedClassId);
-  const summary = attendanceData?.summary || { totalEnrolled: 0, presentCount: 0, lateCount: 0, absentCount: 0, rate: 0 };
+  const summary = attendanceData?.summary || { totalEnrolled: 0, presentCount: 0, lateCount: 0, absentCount: 0, excusedCount: 0, notMarkedCount: 0, rate: 0 };
   const roster = attendanceData?.roster || [];
+  const notMarkedCount = summary.notMarkedCount !== undefined
+    ? summary.notMarkedCount
+    : Math.max(0, (summary.totalEnrolled || roster.length) - ((summary.presentCount || 0) + (summary.lateCount || 0) + (summary.absentCount || 0) + (summary.excusedCount || 0)));
 
   return (
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '90px' }}>
@@ -220,7 +241,7 @@ const AttendanceScreen = () => {
           gap: '12px'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div>
             <span style={{ fontSize: '12px', color: colors.textMuted, fontWeight: '600' }}>
               Attendance Turnout
@@ -230,31 +251,55 @@ const AttendanceScreen = () => {
             </div>
           </div>
 
-          <button
-            onClick={handleMarkAllPresent}
-            disabled={actionLoading}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '12px',
-              backgroundColor: colors.primary,
-              color: '#FFFFFF',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
-            }}
-          >
-            {actionLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {t('markAllPresent')}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={handleResetAll}
+              disabled={actionLoading}
+              title="Reset all students for this date back to Not Marked"
+              style={{
+                padding: '9px 14px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                color: '#EF4444',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <RotateCcw size={14} />
+              Reset All
+            </button>
+
+            <button
+              onClick={handleMarkAllPresent}
+              disabled={actionLoading}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '12px',
+                backgroundColor: colors.primary,
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+              }}
+            >
+              {actionLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {t('markAllPresent')}
+            </button>
+          </div>
         </div>
 
         {/* Pill Counters */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', textAlign: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', textAlign: 'center' }}>
           <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '6px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
             <div style={{ fontSize: '10px', color: '#10B981', fontWeight: '700' }}>Present</div>
             <div style={{ fontSize: '14px', fontWeight: '800', color: '#10B981' }}>{summary.presentCount}</div>
@@ -270,6 +315,10 @@ const AttendanceScreen = () => {
           <div style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)', padding: '6px', borderRadius: '8px', border: '1px solid rgba(14, 165, 233, 0.2)' }}>
             <div style={{ fontSize: '10px', color: '#0EA5E9', fontWeight: '700' }}>Excused</div>
             <div style={{ fontSize: '14px', fontWeight: '800', color: '#0EA5E9' }}>{summary.excusedCount || 0}</div>
+          </div>
+          <div style={{ backgroundColor: colors.surfaceSubtle, padding: '6px', borderRadius: '8px', border: `1px solid ${colors.border}` }}>
+            <div style={{ fontSize: '10px', color: colors.textMuted, fontWeight: '700' }}>Not Marked</div>
+            <div style={{ fontSize: '14px', fontWeight: '800', color: colors.textMuted }}>{notMarkedCount}</div>
           </div>
         </div>
       </div>
@@ -312,36 +361,62 @@ const AttendanceScreen = () => {
                 </div>
               </div>
 
-              {/* Status Clickable Button */}
-              <button
-                onClick={() => handleToggleStatus(st.studentId, st.status)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  border: '1px solid',
-                  cursor: 'pointer',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  textTransform: 'capitalize',
-                  backgroundColor:
-                    st.status === 'present' ? 'rgba(16, 185, 129, 0.15)' :
-                    st.status === 'late' ? 'rgba(245, 158, 11, 0.15)' :
-                    st.status === 'absent' ? 'rgba(239, 68, 68, 0.15)' :
-                    st.status === 'excused' ? 'rgba(14, 165, 233, 0.15)' : colors.surfaceSubtle,
-                  borderColor:
-                    st.status === 'present' ? '#10B981' :
-                    st.status === 'late' ? '#F59E0B' :
-                    st.status === 'absent' ? '#EF4444' :
-                    st.status === 'excused' ? '#0EA5E9' : colors.border,
-                  color:
-                    st.status === 'present' ? '#10B981' :
-                    st.status === 'late' ? '#F59E0B' :
-                    st.status === 'absent' ? '#EF4444' :
-                    st.status === 'excused' ? '#0EA5E9' : colors.textMuted
-                }}
-              >
-                {st.status === 'not_marked' ? 'Not Marked' : st.status}
-              </button>
+              {/* Status Action Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => handleToggleStatus(st.studentId, st.status)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    border: '1px solid',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    textTransform: 'capitalize',
+                    backgroundColor:
+                      st.status === 'present' ? 'rgba(16, 185, 129, 0.15)' :
+                      st.status === 'late' ? 'rgba(245, 158, 11, 0.15)' :
+                      st.status === 'absent' ? 'rgba(239, 68, 68, 0.15)' :
+                      st.status === 'excused' ? 'rgba(14, 165, 233, 0.15)' : colors.surfaceSubtle,
+                    borderColor:
+                      st.status === 'present' ? '#10B981' :
+                      st.status === 'late' ? '#F59E0B' :
+                      st.status === 'absent' ? '#EF4444' :
+                      st.status === 'excused' ? '#0EA5E9' : colors.border,
+                    color:
+                      st.status === 'present' ? '#10B981' :
+                      st.status === 'late' ? '#F59E0B' :
+                      st.status === 'absent' ? '#EF4444' :
+                      st.status === 'excused' ? '#0EA5E9' : colors.textMuted
+                  }}
+                  title="Click to cycle status"
+                >
+                  {st.status === 'not_marked' ? 'Not Marked' : st.status}
+                </button>
+
+                {st.status !== 'not_marked' && (
+                  <button
+                    onClick={() => handleSetStatus(st.studentId, 'not_marked')}
+                    title="Reset back to Not Marked"
+                    style={{
+                      padding: '5px 8px',
+                      borderRadius: '8px',
+                      border: `1px solid ${colors.border}`,
+                      backgroundColor: 'transparent',
+                      color: colors.textMuted,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      fontSize: '10px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    <X size={11} />
+                    Unmark
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

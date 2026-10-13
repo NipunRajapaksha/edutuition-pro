@@ -580,6 +580,7 @@ export const api = {
     const lateCount = roster.filter(r => r.status === 'late').length;
     const absentCount = roster.filter(r => r.status === 'absent').length;
     const excusedCount = roster.filter(r => r.status === 'excused').length;
+    const notMarkedCount = Math.max(0, roster.length - (presentCount + lateCount + absentCount + excusedCount));
     const rate = roster.length > 0 ? Math.round(((presentCount + lateCount) / roster.length) * 100) : 0;
 
     return {
@@ -594,6 +595,7 @@ export const api = {
             lateCount,
             absentCount,
             excusedCount,
+            notMarkedCount,
             rate
           },
           roster
@@ -605,6 +607,15 @@ export const api = {
     try { await client.post('/attendance/mark', data); } catch {}
     const records = getLocal('edutuition_attendance', []);
     const idx = records.findIndex(r => r.classId === data.classId && r.studentId === data.studentId && r.date === data.date);
+    
+    if (data.status === 'not_marked') {
+      if (idx !== -1) {
+        records.splice(idx, 1);
+        setLocal('edutuition_attendance', records);
+      }
+      return { data: { success: true, data: { status: 'not_marked' } } };
+    }
+
     const newRecord = {
       _id: `att_${Date.now()}`,
       classId: data.classId,
@@ -642,6 +653,13 @@ export const api = {
       else records.push(rec);
     });
     setLocal('edutuition_attendance', records);
+    return { data: { success: true } };
+  },
+  resetAttendanceAll: async (data) => {
+    try { await client.post('/attendance/reset-all', data); } catch {}
+    const records = getLocal('edutuition_attendance', []);
+    const filtered = records.filter(r => !(r.classId === data.classId && r.date === data.date));
+    setLocal('edutuition_attendance', filtered);
     return { data: { success: true } };
   },
   scanQrAttendance: async (data) => {
@@ -711,6 +729,45 @@ export const api = {
     const current = getLocal('edutuition_fees', []);
     setLocal('edutuition_fees', [created, ...current]);
     return { data: { success: true, data: created } };
+  },
+  updateFee: async (id, data) => {
+    let updated = null;
+    try {
+      const res = await client.put(`/fees/${id}`, data);
+      if (res?.data?.success && res.data.data) updated = res.data.data;
+    } catch {}
+    const current = getLocal('edutuition_fees', []);
+    const idx = current.findIndex(f => (f._id || f.id) === id);
+    if (idx !== -1) {
+      const due = data.amountDue !== undefined ? Number(data.amountDue) : Number(current[idx].amountDue || 0);
+      const paid = data.amountPaid !== undefined ? Number(data.amountPaid) : Number(current[idx].amountPaid || 0);
+      const balance = Math.max(0, due - paid);
+      let status = 'pending';
+      if (paid >= due && due > 0) status = 'paid';
+      else if (paid > 0) status = 'partially_paid';
+
+      updated = {
+        ...current[idx],
+        ...data,
+        amountDue: due,
+        amountPaid: paid,
+        balance,
+        status,
+        _id: id
+      };
+      current[idx] = updated;
+      setLocal('edutuition_fees', current);
+    }
+    return { data: { success: true, data: updated || data } };
+  },
+  deleteFee: async (id) => {
+    try {
+      await client.delete(`/fees/${id}`);
+    } catch {}
+    const current = getLocal('edutuition_fees', []);
+    const filtered = current.filter(f => (f._id || f.id) !== id);
+    setLocal('edutuition_fees', filtered);
+    return { data: { success: true } };
   },
   getReceipt: async (receiptNumber) => {
     try {
