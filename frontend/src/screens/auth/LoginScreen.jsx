@@ -1,20 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { GraduationCap, Lock, Mail, ArrowRight, Smartphone } from 'lucide-react';
+import { GraduationCap, Lock, Mail, ArrowRight, Smartphone, Eye, EyeOff, KeyRound, Shield, CheckCircle2 } from 'lucide-react';
 import DataSyncModal from '../../components/modals/DataSyncModal';
 
 const LoginScreen = () => {
-  const { login } = useAuth();
+  const { login, getCustomUsers } = useAuth();
   const { colors } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [recentAccounts, setRecentAccounts] = useState([]);
+
+  useEffect(() => {
+    try {
+      if (getCustomUsers) {
+        const custom = getCustomUsers();
+        if (Array.isArray(custom)) {
+          setRecentAccounts(custom.slice(0, 4));
+        }
+      }
+    } catch {}
+  }, []);
+
+  const fillCredentials = async (em, pw, autoSubmit = false) => {
+    setEmail(em);
+    setPassword(pw);
+    setErrorMsg('');
+    if (autoSubmit) {
+      setLoading(true);
+      const res = await login(em, pw);
+      setLoading(false);
+      if (!res.success) {
+        setErrorMsg(res.message);
+      }
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -159,13 +186,13 @@ const LoginScreen = () => {
                 style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: colors.textMuted }}
               />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '12px 14px 12px 40px',
+                  padding: '12px 42px 12px 40px',
                   borderRadius: '12px',
                   border: `1px solid ${colors.border}`,
                   backgroundColor: colors.surfaceSubtle,
@@ -174,6 +201,27 @@ const LoginScreen = () => {
                   outline: 'none'
                 }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: colors.textMuted,
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 
@@ -181,7 +229,7 @@ const LoginScreen = () => {
             type="submit"
             disabled={loading}
             style={{
-              marginTop: '8px',
+              marginTop: '4px',
               padding: '14px',
               borderRadius: '12px',
               backgroundColor: colors.primary,
@@ -201,6 +249,128 @@ const LoginScreen = () => {
             <ArrowRight size={16} />
           </button>
         </form>
+
+        {/* Quick One-Tap Account Credentials Selector */}
+        <div style={{ marginTop: '20px', borderTop: `1px solid ${colors.border}`, paddingTop: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '8px', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            ⚡ 1-Tap Quick Login (වේගවත් පිවිසුම)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => fillCredentials('admin@tuition.lk', 'admin123', true)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                border: '1px solid rgba(79, 70, 229, 0.25)',
+                color: colors.primaryLight,
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <span>👑 Super Admin</span>
+              <span style={{ fontSize: '9px', opacity: 0.75, fontWeight: '500' }}>admin@tuition.lk</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fillCredentials('teacher@tuition.lk', 'password123', true)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                color: '#10B981',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <span>👨‍🏫 Teacher</span>
+              <span style={{ fontSize: '9px', opacity: 0.75, fontWeight: '500' }}>teacher@tuition.lk</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fillCredentials('student1@tuition.lk', 'password123', true)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                border: '1px solid rgba(14, 165, 233, 0.25)',
+                color: '#0EA5E9',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <span>🎓 Student</span>
+              <span style={{ fontSize: '9px', opacity: 0.75, fontWeight: '500' }}>student1@tuition.lk</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fillCredentials('parent1@tuition.lk', 'password123', true)}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+                color: '#F59E0B',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                textAlign: 'left',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <span>👨‍👩‍👧 Parent</span>
+              <span style={{ fontSize: '9px', opacity: 0.75, fontWeight: '500' }}>parent1@tuition.lk</span>
+            </button>
+          </div>
+
+          {/* If there are custom created accounts, display them too */}
+          {recentAccounts.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ fontSize: '10px', color: colors.textMuted, marginBottom: '4px', fontWeight: '600' }}>
+                Custom Created Accounts:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {recentAccounts.map(acc => (
+                  <button
+                    key={acc.id || acc.email}
+                    type="button"
+                    onClick={() => fillCredentials(acc.email, acc.password || 'password123', true)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      border: `1px solid ${colors.border}`,
+                      backgroundColor: colors.surfaceSubtle,
+                      color: colors.text,
+                      fontSize: '10px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    👤 {acc.name} ({acc.role})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Sync Button */}
         <div style={{ marginTop: '20px', textAlign: 'center', borderTop: `1px solid ${colors.border}`, paddingTop: '16px' }}>

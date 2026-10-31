@@ -184,9 +184,13 @@ const Header = ({ onNotificationClick, unreadCount = 0, instituteName, onProfile
           <span className="header-role-text">{getRoleLabel()}</span>
         </div>
 
-        {/* High-visibility Logout Button */}
+        {/* High-visibility Logout Button with accidental touch protection */}
         <button
-          onClick={logout}
+          onClick={() => {
+            if (window.confirm('Are you sure you want to log out? (ඔබට ගිණුමෙන් ඉවත් වීමට අවශ්‍යද?)')) {
+              logout();
+            }
+          }}
           title="Log Out (ගිණුමෙන් ඉවත් වන්න)"
           style={{
             display: 'flex',

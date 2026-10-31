@@ -1,6 +1,20 @@
 {
   "users": [
     {
+      "_id": "user_admin_001",
+      "createdAt": "2026-09-21T09:00:00.000Z",
+      "updatedAt": "2026-09-21T09:00:00.000Z",
+      "name": "Institute Owner / Admin (ප්‍රධාන පරිපාලක)",
+      "email": "admin@tuition.lk",
+      "password": "$2b$10$Z03S.9d.6nJIlyyQvGxvf.HICB.W1omQZcgYQC4MxQ5FuNh5O0tFC",
+      "role": "teacher",
+      "isAdmin": true,
+      "phone": "+94 77 123 4567",
+      "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+      "subjects": "Institute Administration & Management",
+      "bio": "Primary Institute Administrator & Owner"
+    },
+    {
       "_id": "9a877b19-c40d-44df-a2f1-b7a66fdef869",
       "createdAt": "2026-09-21T09:20:25.154Z",
       "updatedAt": "2026-09-21T13:34:55.187Z",
