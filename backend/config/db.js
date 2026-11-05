@@ -32,12 +32,16 @@ const connectDB = async (customUri) => {
     } catch {}
   }
   if (!rawUri || !rawUri.trim()) {
-    rawUri = process.env.MONGODB_URI;
+    rawUri = process.env.MONGODB_URI ||
+      process.env.MONGO_URI ||
+      process.env.MONGODB_URL ||
+      process.env.DATABASE_URL ||
+      process.env.MONGO_URL;
   }
 
   if (!rawUri || !rawUri.trim()) {
     isConnected = false;
-    lastError = 'MONGODB_URI environment variable not found in current deployment.';
+    lastError = 'MongoDB URI not provided. Add MONGODB_URI in Vercel or paste it directly in Settings.';
     return false;
   }
 
@@ -69,7 +73,11 @@ const getIsConnected = () => {
 
 const getDbStatus = () => {
   const ready = mongoose.connection.readyState === 1;
-  let rawUri = process.env.MONGODB_URI;
+  let rawUri = process.env.MONGODB_URI ||
+    process.env.MONGO_URI ||
+    process.env.MONGODB_URL ||
+    process.env.DATABASE_URL ||
+    process.env.MONGO_URL;
   if (!rawUri) {
     try {
       const storage = require('../services/storage');

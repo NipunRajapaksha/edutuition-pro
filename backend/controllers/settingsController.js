@@ -72,7 +72,8 @@ const updateSettings = async (req, res, next) => {
       maxTeachers,
       maxStudents,
       maxParents,
-      licenseKey
+      licenseKey,
+      mongodbUri
     } = req.body;
 
     const updated = storage.updateSettings({
@@ -90,13 +91,27 @@ const updateSettings = async (req, res, next) => {
       maxTeachers: maxTeachers !== undefined ? Number(maxTeachers) : undefined,
       maxStudents: maxStudents !== undefined ? Number(maxStudents) : undefined,
       maxParents: maxParents !== undefined ? Number(maxParents) : undefined,
-      licenseKey: licenseKey?.trim() || undefined
+      licenseKey: licenseKey?.trim() || undefined,
+      mongodbUri: mongodbUri?.trim() || undefined
     });
+
+    if (mongodbUri && mongodbUri.trim()) {
+      const connected = await connectDB(mongodbUri.trim());
+      if (connected && storage.syncFromCloud) {
+        await storage.syncFromCloud();
+      }
+    }
+
+    const dbStatus = getDbStatus();
 
     res.json({
       success: true,
       message: 'Institute settings updated successfully',
-      data: updated
+      data: {
+        ...updated,
+        isCloudConnected: dbStatus.isConnected,
+        dbStatus
+      }
     });
   } catch (err) {
     next(err);

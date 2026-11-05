@@ -142,16 +142,13 @@ export const api = {
   reconnectDb: async (mongodbUri) => {
     try {
       const res = await client.post('/settings/reconnect-db', { mongodbUri });
-      return res;
+      if (res?.data) return res;
     } catch (e) {
-      if (e.response?.status === 404) {
-        if (mongodbUri) {
-          try {
-            await client.put('/settings', { mongodbUri });
-            return { data: { success: false, message: 'MongoDB URI saved! Please click Redeploy in Vercel to activate cloud database.' } };
-          } catch {}
-        }
-        return { data: { success: false, message: 'Vercel backend is still applying the new update. Please click Redeploy in Vercel Deployments.' } };
+      try {
+        const fallbackRes = await client.put('/settings', { mongodbUri });
+        if (fallbackRes?.data) return fallbackRes;
+      } catch (err2) {
+        return { data: { success: false, message: err2.response?.data?.message || err2.message || 'Connection failed' } };
       }
       return { data: { success: false, message: e.response?.data?.message || e.message } };
     }
