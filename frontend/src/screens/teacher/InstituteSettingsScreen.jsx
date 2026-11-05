@@ -74,6 +74,11 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
   const [restoringStudents, setRestoringStudents] = useState(false);
   const [recoveryMessage, setRecoveryMessage] = useState(null);
 
+  // Cloud Database Diagnostics State
+  const [dbStatus, setDbStatus] = useState(null);
+  const [reconnectingDb, setReconnectingDb] = useState(false);
+  const [dbReconnectMsg, setDbReconnectMsg] = useState(null);
+
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -96,6 +101,10 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
           maxParents: res.data.data.maxParents || 500,
           isCloudConnected: res.data.data.isCloudConnected || false
         });
+
+        if (res.data.data.dbStatus) {
+          setDbStatus(res.data.data.dbStatus);
+        }
       }
 
       // Fetch user & student counts
@@ -134,6 +143,30 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleReconnectDb = async () => {
+    setReconnectingDb(true);
+    setDbReconnectMsg(null);
+    try {
+      const res = await api.reconnectDb();
+      if (res.data?.success) {
+        setPlanInfo(prev => ({ ...prev, isCloudConnected: true }));
+        setDbStatus(res.data.data?.dbStatus || null);
+        setDbReconnectMsg({ type: 'success', text: '✅ Successfully connected to MongoDB Atlas Cloud!' });
+        fetchSettings();
+      } else {
+        setDbStatus(res.data?.data?.dbStatus || null);
+        setDbReconnectMsg({
+          type: 'error',
+          text: res.data?.message || 'Connection failed. Please check MongoDB Atlas Network Access and credentials.'
+        });
+      }
+    } catch (e) {
+      setDbReconnectMsg({ type: 'error', text: e.message || 'Error testing MongoDB connection' });
+    } finally {
+      setReconnectingDb(false);
+    }
   };
 
   const handleActivateLicense = async (e) => {
@@ -325,29 +358,78 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
+            flexDirection: 'column',
             gap: '8px',
-            padding: '10px 14px',
+            padding: '12px 14px',
             borderRadius: '12px',
             backgroundColor: planInfo.isCloudConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
             border: `1px solid ${planInfo.isCloudConnected ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: planInfo.isCloudConnected ? '#10B981' : '#F59E0B' }} />
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: '800', color: planInfo.isCloudConnected ? '#10B981' : '#D97706' }}>
-                {planInfo.isCloudConnected ? 'Cloud Database Connected (100% Data Loss Proof)' : 'Embedded Storage Active'}
-              </div>
-              <div style={{ fontSize: '11px', color: colors.textMuted }}>
-                {planInfo.isCloudConnected
-                  ? 'All students, attendance and fee records are permanently backed up to the cloud.'
-                  : 'For 100% permanent cloud persistence across servers and redeployments, connect a free MongoDB Atlas URI.'}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: planInfo.isCloudConnected ? '#10B981' : '#F59E0B' }} />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: '800', color: planInfo.isCloudConnected ? '#10B981' : '#D97706' }}>
+                  {planInfo.isCloudConnected ? 'Cloud Database Connected (100% Data Loss Proof)' : 'Embedded Storage Active'}
+                </div>
+                <div style={{ fontSize: '11px', color: colors.textMuted }}>
+                  {planInfo.isCloudConnected
+                    ? 'All students, attendance and fee records are permanently backed up to the cloud.'
+                    : dbStatus?.hasMongoUri
+                      ? `MONGODB_URI detected (${dbStatus.maskedUri || 'mongodb+srv://...'}), but connection failed.`
+                      : 'MONGODB_URI not detected in current deployment. If you just added it in Vercel, click Redeploy in Vercel.'}
+                </div>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleReconnectDb}
+              disabled={reconnectingDb}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.border}`,
+                color: colors.text,
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: reconnectingDb ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <RefreshCw size={13} className={reconnectingDb ? 'spin' : ''} />
+              <span>{reconnectingDb ? 'Testing Connection...' : 'Test / Reconnect MongoDB'}</span>
+            </button>
           </div>
+
+          {!planInfo.isCloudConnected && (
+            <div style={{ fontSize: '11px', color: colors.textMuted, borderTop: `1px dashed ${colors.border}`, paddingTop: '6px' }}>
+              {dbStatus?.lastError && (
+                <div style={{ color: '#EF4444', fontWeight: '600', marginBottom: '4px' }}>
+                  Reason: {dbStatus.lastError}
+                </div>
+              )}
+              {dbStatus?.hasMongoUri ? (
+                <div>
+                  <strong>Common Fix:</strong> In MongoDB Atlas, go to <strong>Network Access</strong> &rarr; click <strong>Add IP Address</strong> &rarr; select <strong>Allow Access from Anywhere (0.0.0.0/0)</strong>. Also check that your database username &amp; password in MONGODB_URI are correct.
+                </div>
+              ) : (
+                <div>
+                  <strong>To activate:</strong> In Vercel &rarr; <strong>Deployments</strong> &rarr; click <strong>...</strong> next to the latest deployment &rarr; click <strong>Redeploy</strong> to apply the newly added MONGODB_URI.
+                </div>
+              )}
+            </div>
+          )}
+
+          {dbReconnectMsg && (
+            <div style={{ fontSize: '11px', fontWeight: '700', color: dbReconnectMsg.type === 'success' ? '#10B981' : '#EF4444' }}>
+              {dbReconnectMsg.text}
+            </div>
+          )}
         </div>
 
         {/* Quota Progress Grid */}

@@ -28,7 +28,10 @@ const initDb = async () => {
   if (dbReady) return;
   if (!dbInitPromise) {
     dbInitPromise = (async () => {
-      await connectDB();
+      const connected = await connectDB();
+      if (connected && storage.syncFromCloud) {
+        await storage.syncFromCloud();
+      }
       const userCount = storage.users.find().length;
       if (userCount === 0) {
         console.log('⚡ Empty datastore detected. Running initial institute seed...');

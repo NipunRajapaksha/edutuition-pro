@@ -1,6 +1,24 @@
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
+
+// Mongoose model for persistent cloud snapshot in MongoDB
+const SystemStoreSchema = new mongoose.Schema({
+  _id: { type: String, default: 'main_datastore' },
+  data: { type: mongoose.Schema.Types.Mixed, default: {} },
+  updatedAt: { type: Date, default: Date.now }
+}, { collection: 'system_datastore' });
+
+let SystemStoreModel = null;
+const getSystemStoreModel = () => {
+  if (!SystemStoreModel && mongoose.connection.readyState === 1) {
+    try {
+      SystemStoreModel = mongoose.models.SystemStore || mongoose.model('SystemStore', SystemStoreSchema);
+    } catch {}
+  }
+  return SystemStoreModel;
+};
 
 const DATA_DIR = process.env.VERCEL ? '/tmp/data' : path.join(__dirname, '../data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -88,6 +106,46 @@ function saveDatabase() {
     fs.writeFileSync(DB_FILE, JSON.stringify(dataCache, null, 2), 'utf-8');
   } catch (err) {
     console.error('Error saving db.json:', err);
+  }
+
+  // Mirror save to MongoDB Cloud in background if connected
+  const Model = getSystemStoreModel();
+  if (Model && mongoose.connection.readyState === 1 && dataCache) {
+    Model.findByIdAndUpdate(
+      'main_datastore',
+      { data: dataCache, updatedAt: new Date() },
+      { upsert: true }
+    ).catch(err => console.warn('Background MongoDB sync error:', err.message));
+  }
+}
+
+async function syncFromCloud() {
+  const Model = getSystemStoreModel();
+  if (!Model || mongoose.connection.readyState !== 1) return false;
+  try {
+    const doc = await Model.findById('main_datastore');
+    if (doc && doc.data && Object.keys(doc.data).length > 0) {
+      dataCache = doc.data;
+      try {
+        ensureDirectoryExistence(DB_FILE);
+        fs.writeFileSync(DB_FILE, JSON.stringify(dataCache, null, 2), 'utf-8');
+      } catch {}
+      console.log('☁️ Synced datastore snapshot from MongoDB Cloud');
+      return true;
+    } else {
+      // First time MongoDB connected: push local data to MongoDB
+      const current = loadDatabase();
+      await Model.findByIdAndUpdate(
+        'main_datastore',
+        { data: current, updatedAt: new Date() },
+        { upsert: true }
+      );
+      console.log('☁️ Seeded current datastore into MongoDB Cloud');
+      return true;
+    }
+  } catch (err) {
+    console.warn('Could not sync from MongoDB:', err.message);
+    return false;
   }
 }
 
@@ -242,7 +300,9 @@ const storage = {
   reload() {
     dataCache = null;
     return loadDatabase();
-  }
+  },
+
+  syncFromCloud
 };
 
 module.exports = storage;

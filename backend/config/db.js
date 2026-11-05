@@ -1,33 +1,68 @@
 const mongoose = require('mongoose');
 
 let isConnected = false;
+let lastError = null;
+let connectionAttempted = false;
+
+const maskUri = (uri) => {
+  if (!uri) return '';
+  try {
+    return uri.replace(/:([^:@]+)@/, ':****@');
+  } catch {
+    return 'mongodb+srv://...';
+  }
+};
 
 const connectDB = async () => {
-  // If no MONGODB_URI is provided, skip Mongoose connection attempt immediately
-  if (!process.env.MONGODB_URI) {
-    console.log(`🚀 Operating in High-Performance Embedded JSON Datastore mode (zero-config, persistent).`);
+  connectionAttempted = true;
+  if (mongoose.connection.readyState === 1) {
+    isConnected = true;
+    lastError = null;
+    return true;
+  }
+
+  const rawUri = process.env.MONGODB_URI;
+  if (!rawUri || !rawUri.trim()) {
     isConnected = false;
+    lastError = 'MONGODB_URI environment variable not found in current deployment.';
     return false;
   }
 
-  const mongoUri = process.env.MONGODB_URI;
+  const mongoUri = rawUri.trim();
 
   try {
     const conn = await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 2000,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000
     });
     isConnected = true;
+    lastError = null;
     console.log(`✅ MongoDB Connected to: ${conn.connection.host}/${conn.connection.name}`);
     return true;
   } catch (error) {
-    console.warn(`⚠️ MongoDB connection unavailable (${error.message}).`);
-    console.log(`🚀 Operating in High-Performance Embedded JSON Datastore mode (zero-config, persistent).`);
+    lastError = error.message;
     isConnected = false;
+    console.warn(`⚠️ MongoDB connection unavailable (${error.message}).`);
     return false;
   }
 };
 
-const getIsConnected = () => isConnected;
+const getIsConnected = () => {
+  return mongoose.connection.readyState === 1 || isConnected;
+};
 
-module.exports = { connectDB, getIsConnected };
+const getDbStatus = () => {
+  const ready = mongoose.connection.readyState === 1;
+  const rawUri = process.env.MONGODB_URI;
+  return {
+    isConnected: ready || isConnected,
+    hasMongoUri: !!(rawUri && rawUri.trim()),
+    maskedUri: maskUri(rawUri),
+    readyState: mongoose.connection.readyState,
+    lastError: lastError,
+    attempted: connectionAttempted
+  };
+};
+
+module.exports = { connectDB, getIsConnected, getDbStatus };
 

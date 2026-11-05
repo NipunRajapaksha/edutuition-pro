@@ -1,15 +1,48 @@
 const storage = require('../services/storage');
-const { getIsConnected } = require('../config/db');
+const { getIsConnected, getDbStatus, connectDB } = require('../config/db');
 
 // Get current institute settings
 const getSettings = async (req, res, next) => {
   try {
+    // Proactively attempt connection if not connected yet but MONGODB_URI exists
+    if (!getIsConnected() && process.env.MONGODB_URI) {
+      const connected = await connectDB();
+      if (connected && storage.syncFromCloud) {
+        await storage.syncFromCloud();
+      }
+    }
+
     const settings = storage.getSettings();
+    const dbStatus = getDbStatus();
     res.json({
       success: true,
       data: {
         ...settings,
-        isCloudConnected: getIsConnected()
+        isCloudConnected: dbStatus.isConnected,
+        dbStatus
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Reconnect/Test database connection
+const reconnectDb = async (req, res, next) => {
+  try {
+    const connected = await connectDB();
+    if (connected && storage.syncFromCloud) {
+      await storage.syncFromCloud();
+    }
+    const dbStatus = getDbStatus();
+    res.json({
+      success: dbStatus.isConnected,
+      message: dbStatus.isConnected
+        ? '✅ Successfully connected to MongoDB Atlas Cloud!'
+        : `Connection failed: ${dbStatus.lastError || 'Unknown error'}`,
+      data: {
+        isCloudConnected: dbStatus.isConnected,
+        dbStatus
       }
     });
   } catch (err) {
@@ -99,4 +132,4 @@ const activateLicense = async (req, res, next) => {
   }
 };
 
-module.exports = { getSettings, updateSettings, activateLicense };
+module.exports = { getSettings, updateSettings, activateLicense, reconnectDb };

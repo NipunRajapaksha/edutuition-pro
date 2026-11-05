@@ -139,6 +139,14 @@ export const api = {
     setLocal('edutuition_settings', data);
     return { data: { success: true, data } };
   },
+  reconnectDb: async () => {
+    try {
+      const res = await client.post('/settings/reconnect-db');
+      return res;
+    } catch (e) {
+      return { data: { success: false, message: e.response?.data?.message || e.message } };
+    }
+  },
   activateLicense: async (licenseKey) => {
     try {
       const res = await client.post('/settings/activate-license', { licenseKey });
