@@ -25,7 +25,13 @@ const updateSettings = async (req, res, next) => {
       currency,
       minAttendanceAlertPercent,
       receiptFooterNote,
-      enableAiAssistant
+      enableAiAssistant,
+      plan,
+      isPremium,
+      maxTeachers,
+      maxStudents,
+      maxParents,
+      licenseKey
     } = req.body;
 
     const updated = storage.updateSettings({
@@ -37,7 +43,13 @@ const updateSettings = async (req, res, next) => {
       currency: currency?.trim() || undefined,
       minAttendanceAlertPercent: minAttendanceAlertPercent !== undefined ? Number(minAttendanceAlertPercent) : undefined,
       receiptFooterNote: receiptFooterNote?.trim() || undefined,
-      enableAiAssistant: enableAiAssistant !== undefined ? Boolean(enableAiAssistant) : undefined
+      enableAiAssistant: enableAiAssistant !== undefined ? Boolean(enableAiAssistant) : undefined,
+      plan: plan || undefined,
+      isPremium: isPremium !== undefined ? Boolean(isPremium) : undefined,
+      maxTeachers: maxTeachers !== undefined ? Number(maxTeachers) : undefined,
+      maxStudents: maxStudents !== undefined ? Number(maxStudents) : undefined,
+      maxParents: maxParents !== undefined ? Number(maxParents) : undefined,
+      licenseKey: licenseKey?.trim() || undefined
     });
 
     res.json({
@@ -50,4 +62,37 @@ const updateSettings = async (req, res, next) => {
   }
 };
 
-module.exports = { getSettings, updateSettings };
+const activateLicense = async (req, res, next) => {
+  try {
+    const { licenseKey } = req.body;
+    const cleanKey = (licenseKey || '').trim().toUpperCase();
+    const validKeys = ['PREMIUM-2026', 'EDU-PREMIUM-AI', 'PRO-ENTERPRISE-KEY', 'NIPUN-VIP-2026', 'PREMIUM'];
+
+    if (!cleanKey || (!validKeys.includes(cleanKey) && !cleanKey.startsWith('PRO-'))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid License Key. Please enter a valid Premium Enterprise License code (e.g. PREMIUM-2026).'
+      });
+    }
+
+    const updated = storage.updateSettings({
+      plan: 'premium',
+      isPremium: true,
+      enableAiAssistant: true,
+      licenseKey: cleanKey,
+      maxTeachers: 1000,
+      maxStudents: 10000,
+      maxParents: 10000
+    });
+
+    res.json({
+      success: true,
+      message: '🎉 Premium Enterprise License Activated! Unlimited accounts and AI Assistant unlocked.',
+      data: updated
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getSettings, updateSettings, activateLicense };

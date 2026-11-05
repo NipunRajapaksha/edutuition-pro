@@ -34,10 +34,15 @@ const defaultStructure = {
     instituteName: 'N.A.R Academy (උසස් අධ්‍යාපන ආයතනය)',
     currency: 'Rs.',
     phone: '+94 77 123 4567',
-    email: 'info@naracademy.lk',
+    email: 'nipunanjana10@gmail.com',
     address: '142 High Level Road, Nugegoda, Sri Lanka',
     minAttendanceAlertPercent: 75,
-    enableAiAssistant: true,
+    plan: 'standard',
+    isPremium: false,
+    maxTeachers: 10,
+    maxStudents: 500,
+    maxParents: 500,
+    enableAiAssistant: false
   }
 };
 

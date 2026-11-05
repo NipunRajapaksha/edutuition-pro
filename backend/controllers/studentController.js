@@ -168,6 +168,19 @@ const createStudent = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Full name and grade are required' });
     }
 
+    // Check Commercial Tier / Subscription Limits
+    const settings = storage.getSettings ? storage.getSettings() : (storage.settings || {});
+    const isPremium = settings.plan === 'premium' || settings.isPremium === true;
+    const maxStudents = isPremium ? 10000 : (settings.maxStudents || 500);
+    const currentStudents = storage.students.find().length;
+
+    if (currentStudents >= maxStudents) {
+      return res.status(403).json({
+        success: false,
+        message: `Standard Plan limit reached (Maximum ${maxStudents} Students). Upgrade to Premium Enterprise Plan for unlimited student registrations.`
+      });
+    }
+
     const studentId = generateNextStudentId();
 
     const student = storage.students.create({

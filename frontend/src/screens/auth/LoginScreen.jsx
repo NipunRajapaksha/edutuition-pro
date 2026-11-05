@@ -6,7 +6,7 @@ import { GraduationCap, Lock, Mail, ArrowRight, Smartphone, Eye, EyeOff, KeyRoun
 import DataSyncModal from '../../components/modals/DataSyncModal';
 
 const LoginScreen = () => {
-  const { login, getCustomUsers } = useAuth();
+  const { login } = useAuth();
   const { colors } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
 
@@ -16,32 +16,6 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showSyncModal, setShowSyncModal] = useState(false);
-  const [recentAccounts, setRecentAccounts] = useState([]);
-
-  useEffect(() => {
-    try {
-      if (getCustomUsers) {
-        const custom = getCustomUsers();
-        if (Array.isArray(custom)) {
-          setRecentAccounts(custom.slice(0, 4));
-        }
-      }
-    } catch {}
-  }, []);
-
-  const fillCredentials = async (em, pw, autoSubmit = false) => {
-    setEmail(em);
-    setPassword(pw);
-    setErrorMsg('');
-    if (autoSubmit) {
-      setLoading(true);
-      const res = await login(em, pw);
-      setLoading(false);
-      if (!res.success) {
-        setErrorMsg(res.message);
-      }
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -250,150 +224,40 @@ const LoginScreen = () => {
           </button>
         </form>
 
-        {/* Quick One-Tap Account Credentials Selector */}
-        <div style={{ marginTop: '20px', borderTop: `1px solid ${colors.border}`, paddingTop: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: '700', color: colors.textMuted, marginBottom: '8px', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            ⚡ 1-Tap Quick Login (වේගවත් පිවිසුම)
+        {/* Security & Access Notice */}
+        <div style={{ marginTop: '24px', borderTop: `1px solid ${colors.border}`, paddingTop: '16px', textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: colors.textMuted, fontSize: '11px', fontWeight: '600', marginBottom: '8px' }}>
+            <Shield size={13} color="#10B981" />
+            <span>Commercial Enterprise Role-Based Access Control</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+
+          <div style={{ fontSize: '11px', color: colors.textMuted, lineHeight: '1.5' }}>
+            Authorized personnel, teachers, students, and parents: please sign in with your registered account credentials.
+          </div>
+
+          {/* Sync Button */}
+          <div style={{ marginTop: '16px' }}>
             <button
               type="button"
-              onClick={() => fillCredentials('admin@tuition.lk', 'admin123', true)}
+              onClick={() => setShowSyncModal(true)}
               style={{
-                padding: '8px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                border: '1px solid rgba(79, 70, 229, 0.25)',
+                background: 'none',
+                border: `1px dashed ${colors.border}`,
+                padding: '8px 16px',
+                borderRadius: '12px',
                 color: colors.primaryLight,
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: '700',
                 cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                flexDirection: 'column'
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
             >
-              <span>👑 Super Admin</span>
-              <span style={{ fontSize: '9px', opacity: 0.75, fontWeight: '500' }}>admin@tuition.lk</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => fillCredentials('teacher@tuition.lk', 'password123', true)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                color: '#10B981',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              <span>👨‍🏫 Teacher</span>
-              <span style={{ fontSize: '9px', opacity: 0.75, fontWeight: '500' }}>teacher@tuition.lk</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => fillCredentials('student1@tuition.lk', 'password123', true)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                border: '1px solid rgba(14, 165, 233, 0.25)',
-                color: '#0EA5E9',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              <span>🎓 Student</span>
-              <span style={{ fontSize: '9px', opacity: 0.75, fontWeight: '500' }}>student1@tuition.lk</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => fillCredentials('parent1@tuition.lk', 'password123', true)}
-              style={{
-                padding: '8px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                border: '1px solid rgba(245, 158, 11, 0.25)',
-                color: '#F59E0B',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              <span>👨‍👩‍👧 Parent</span>
-              <span style={{ fontSize: '9px', opacity: 0.75, fontWeight: '500' }}>parent1@tuition.lk</span>
+              <Smartphone size={14} />
+              <span>📲 Sync Data from PC / Cloud (දත්ත හුවමාරුව)</span>
             </button>
           </div>
-
-          {/* If there are custom created accounts, display them too */}
-          {recentAccounts.length > 0 && (
-            <div style={{ marginTop: '10px' }}>
-              <div style={{ fontSize: '10px', color: colors.textMuted, marginBottom: '4px', fontWeight: '600' }}>
-                Custom Created Accounts:
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {recentAccounts.map(acc => (
-                  <button
-                    key={acc.id || acc.email}
-                    type="button"
-                    onClick={() => fillCredentials(acc.email, acc.password || 'password123', true)}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '8px',
-                      border: `1px solid ${colors.border}`,
-                      backgroundColor: colors.surfaceSubtle,
-                      color: colors.text,
-                      fontSize: '10px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    👤 {acc.name} ({acc.role})
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Sync Button */}
-        <div style={{ marginTop: '20px', textAlign: 'center', borderTop: `1px solid ${colors.border}`, paddingTop: '16px' }}>
-          <button
-            type="button"
-            onClick={() => setShowSyncModal(true)}
-            style={{
-              background: 'none',
-              border: `1px dashed ${colors.border}`,
-              padding: '8px 16px',
-              borderRadius: '12px',
-              color: colors.primaryLight,
-              fontSize: '12px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Smartphone size={14} />
-            <span>📲 Sync Data from PC / Cloud (දත්ත හුවමාරුව)</span>
-          </button>
         </div>
       </div>
 

@@ -1,6 +1,20 @@
 {
   "users": [
     {
+      "_id": "user_owner_nipun",
+      "createdAt": "2026-09-21T09:00:00.000Z",
+      "updatedAt": "2026-11-05T09:00:00.000Z",
+      "name": "Nipun Anjana (Institute Owner & Super Admin)",
+      "email": "nipunanjana10@gmail.com",
+      "password": "$2b$10$Z03S.9d.6nJIlyyQvGxvf.HICB.W1omQZcgYQC4MxQ5FuNh5O0tFC",
+      "role": "teacher",
+      "isAdmin": true,
+      "phone": "+94 77 123 4567",
+      "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+      "subjects": "Institute Administration & Management",
+      "bio": "Primary Institute Owner & Super Administrator"
+    },
+    {
       "_id": "user_admin_001",
       "createdAt": "2026-09-21T09:00:00.000Z",
       "updatedAt": "2026-09-21T09:00:00.000Z",
@@ -816,6 +830,13 @@
   "settings": {
     "instituteName": "Apex Higher Education (ශිල්ප කලා ඇකඩමි)",
     "phone": "+94 77 999 8888",
-    "updatedAt": "2026-09-21T13:34:55.180Z"
+    "email": "nipunanjana10@gmail.com",
+    "plan": "standard",
+    "isPremium": false,
+    "maxTeachers": 10,
+    "maxStudents": 500,
+    "maxParents": 500,
+    "enableAiAssistant": false,
+    "updatedAt": "2026-11-05T09:00:00.000Z"
   }
 }

@@ -3,6 +3,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { api } from '../../api/client';
 import Badge from '../../components/Badge';
+import confetti from 'canvas-confetti';
 import {
   Sparkles,
   BrainCircuit,
@@ -13,7 +14,13 @@ import {
   Send,
   CheckCircle2,
   Copy,
-  Download
+  Download,
+  Crown,
+  Lock,
+  Key,
+  ShieldCheck,
+  Zap,
+  X
 } from 'lucide-react';
 
 const AiToolsScreen = () => {
@@ -21,6 +28,46 @@ const AiToolsScreen = () => {
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('insights'); // 'insights' | 'homework' | 'quiz' | 'paper' | 'risk'
+
+  // Premium & Licensing State
+  const [isPremium, setIsPremium] = useState(false);
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
+  const [licenseInput, setLicenseInput] = useState('');
+  const [licenseError, setLicenseError] = useState('');
+  const [activating, setActivating] = useState(false);
+
+  useEffect(() => {
+    const checkPlan = async () => {
+      try {
+        const res = await api.getSettings();
+        const settings = res?.data?.data || {};
+        setIsPremium(settings.plan === 'premium' || settings.isPremium === true || settings.enableAiAssistant === true);
+      } catch {}
+    };
+    checkPlan();
+  }, []);
+
+  const handleActivateLicense = async (e) => {
+    e.preventDefault();
+    if (!licenseInput.trim()) {
+      setLicenseError('Please enter a license key');
+      return;
+    }
+    setActivating(true);
+    setLicenseError('');
+    try {
+      const res = await api.activateLicense(licenseInput.trim());
+      if (res?.data?.success) {
+        setIsPremium(true);
+        setShowLicenseModal(false);
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
+    } catch (err) {
+      setLicenseError(err.message || 'Invalid License Key');
+    } finally {
+      setActivating(false);
+    }
+  };
 
   // Tab 1: Performance Insights
   const [students, setStudents] = useState([]);
@@ -169,56 +216,185 @@ const AiToolsScreen = () => {
   return (
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '90px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <BrainCircuit size={22} />
-        </div>
-        <div>
-          <h2 style={{ fontSize: '20px', fontWeight: '800', color: colors.text }}>
-            {t('aiAssistant')}
-          </h2>
-          <div style={{ fontSize: '12px', color: colors.textMuted }}>
-            Diagnostic insights, auto-generators & at-risk student detector
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <BrainCircuit size={22} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', color: colors.text, margin: 0 }}>
+              {t('aiAssistant')}
+            </h2>
+            <div style={{ fontSize: '12px', color: colors.textMuted }}>
+              Diagnostic insights, auto-generators & at-risk student detector
+            </div>
           </div>
         </div>
+
+        {isPremium ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '12px', backgroundColor: 'rgba(245, 158, 11, 0.15)', border: '1px solid #F59E0B', color: '#F59E0B', fontSize: '11px', fontWeight: '800' }}>
+            <Crown size={14} />
+            <span>PREMIUM ACTIVE</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowLicenseModal(true)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '10px',
+              backgroundColor: '#8B5CF6',
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '11px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(139, 92, 246, 0.4)'
+            }}
+          >
+            <Crown size={13} />
+            <span>Upgrade to Premium</span>
+          </button>
+        )}
       </div>
 
-      {/* Feature Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-        {[
-          { id: 'insights', label: 'Insights', icon: Sparkles },
-          { id: 'homework', label: 'Homework Gen', icon: FileText },
-          { id: 'quiz', label: 'Quiz Gen', icon: HelpCircle },
-          { id: 'paper', label: 'Paper Gen', icon: FileQuestion },
-          { id: 'risk', label: 'Risk Detector', icon: AlertTriangle }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
+      {!isPremium ? (
+        <div
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: '20px',
+            padding: '24px 20px',
+            border: '2px solid rgba(139, 92, 246, 0.3)',
+            boxShadow: '0 8px 30px rgba(139, 92, 246, 0.12)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', boxShadow: '0 6px 18px rgba(139, 92, 246, 0.4)', flexShrink: 0 }}>
+              <Crown size={28} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: colors.text, margin: 0 }}>
+                  Enterprise AI Assistant Suite
+                </h3>
+                <span style={{ fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#F59E0B', color: '#FFFFFF' }}>PREMIUM ONLY</span>
+              </div>
+              <p style={{ fontSize: '12px', color: colors.textMuted, margin: '4px 0 0 0' }}>
+                කෘත්‍රිම බුද්ධි විභාග ප්‍රශ්න පත්‍ර නිර්මාණය, ගෙදර වැඩ සහ ශිෂ්‍ය ඇගයීම් සහයක
+              </p>
+            </div>
+          </div>
+
+          {/* Feature Showcase Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+            <div style={{ padding: '14px', borderRadius: '14px', backgroundColor: colors.surfaceSubtle, border: `1px solid ${colors.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <FileQuestion size={18} color="#8B5CF6" />
+                <span style={{ fontWeight: '700', fontSize: '13px', color: colors.text }}>1-Click Question Papers</span>
+              </div>
+              <div style={{ fontSize: '11px', color: colors.textMuted, lineHeight: '1.4' }}>
+                Create Grade 1-13 term exam question papers in Sinhala/English with marking schemes.
+              </div>
+            </div>
+
+            <div style={{ padding: '14px', borderRadius: '14px', backgroundColor: colors.surfaceSubtle, border: `1px solid ${colors.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <FileText size={18} color="#06B6D4" />
+                <span style={{ fontWeight: '700', fontSize: '13px', color: colors.text }}>Homework & Quizzes</span>
+              </div>
+              <div style={{ fontSize: '11px', color: colors.textMuted, lineHeight: '1.4' }}>
+                Instant topical questions, MCQs, and theory exercises customized by grade.
+              </div>
+            </div>
+
+            <div style={{ padding: '14px', borderRadius: '14px', backgroundColor: colors.surfaceSubtle, border: `1px solid ${colors.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <AlertTriangle size={18} color="#F59E0B" />
+                <span style={{ fontWeight: '700', fontSize: '13px', color: colors.text }}>Dropout & Failure Detector</span>
+              </div>
+              <div style={{ fontSize: '11px', color: colors.textMuted, lineHeight: '1.4' }}>
+                Early-warning analytics flagging students at risk based on attendance and test score trends.
+              </div>
+            </div>
+
+            <div style={{ padding: '14px', borderRadius: '14px', backgroundColor: colors.surfaceSubtle, border: `1px solid ${colors.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <Sparkles size={18} color="#10B981" />
+                <span style={{ fontWeight: '700', fontSize: '13px', color: colors.text }}>Parent Progress Summaries</span>
+              </div>
+              <div style={{ fontSize: '11px', color: colors.textMuted, lineHeight: '1.4' }}>
+                Auto-generates student progress letters in Sinhala ready for 1-click WhatsApp delivery.
+              </div>
+            </div>
+          </div>
+
+          {/* Action button */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => setShowLicenseModal(true)}
               style={{
+                padding: '12px 28px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                fontWeight: '800',
+                fontSize: '14px',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '20px',
-                backgroundColor: isActive ? '#8B5CF6' : colors.surface,
-                color: isActive ? '#FFFFFF' : colors.textMuted,
-                border: `1px solid ${isActive ? '#8B5CF6' : colors.border}`,
-                fontSize: '12px',
-                fontWeight: isActive ? '700' : '500',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
+                gap: '8px',
+                boxShadow: '0 4px 16px rgba(139, 92, 246, 0.4)'
               }}
             >
-              <Icon size={14} />
-              <span>{tab.label}</span>
+              <Zap size={18} />
+              <span>Unlock AI Assistant (Enter License Key)</span>
             </button>
-          );
-        })}
-      </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Feature Navigation Tabs */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {[
+              { id: 'insights', label: 'Insights', icon: Sparkles },
+              { id: 'homework', label: 'Homework Gen', icon: FileText },
+              { id: 'quiz', label: 'Quiz Gen', icon: HelpCircle },
+              { id: 'paper', label: 'Paper Gen', icon: FileQuestion },
+              { id: 'risk', label: 'Risk Detector', icon: AlertTriangle }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '20px',
+                    backgroundColor: isActive ? '#8B5CF6' : colors.surface,
+                    color: isActive ? '#FFFFFF' : colors.textMuted,
+                    border: `1px solid ${isActive ? '#8B5CF6' : colors.border}`,
+                    fontSize: '12px',
+                    fontWeight: isActive ? '700' : '500',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Icon size={14} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
       {/* TAB 1: AI Student Performance Insights */}
       {activeTab === 'insights' && (
@@ -804,6 +980,126 @@ const AiToolsScreen = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+      </>
+      )}
+
+      {/* License Activation Modal */}
+      {showLicenseModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px'
+          }}
+          onClick={() => setShowLicenseModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: '24px',
+              maxWidth: '440px',
+              width: '100%',
+              padding: '24px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              border: `1px solid ${colors.border}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>
+                  <Crown size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: colors.text, margin: 0 }}>
+                    Unlock Premium License
+                  </h3>
+                  <div style={{ fontSize: '11px', color: colors.textMuted }}>
+                    AI Tools & Unlimited Accounts
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowLicenseModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleActivateLicense} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: colors.text, display: 'block', marginBottom: '6px' }}>
+                  Enter License / Activation Key
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Key size={16} style={{ position: 'absolute', left: '12px', top: '12px', color: colors.textMuted }} />
+                  <input
+                    type="text"
+                    value={licenseInput}
+                    onChange={(e) => setLicenseInput(e.target.value.toUpperCase())}
+                    placeholder="e.g. PREMIUM-2026 or EDU-PREMIUM-AI"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px 10px 36px',
+                      borderRadius: '10px',
+                      border: `1px solid ${colors.border}`,
+                      backgroundColor: colors.surfaceSubtle,
+                      color: colors.text,
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      letterSpacing: '0.5px'
+                    }}
+                  />
+                </div>
+                {licenseError && (
+                  <div style={{ fontSize: '11px', color: '#EF4444', marginTop: '6px' }}>
+                    {licenseError}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ backgroundColor: colors.surfaceSubtle, borderRadius: '10px', padding: '10px 12px', fontSize: '11px', color: colors.textMuted, lineHeight: '1.4' }}>
+                <strong style={{ color: colors.text }}>Includes:</strong> Unlimited Students, Unlimited Teachers, 1-Click AI Question Papers, Quizzes, and Drop-out Risk Intelligence.
+              </div>
+
+              <button
+                type="submit"
+                disabled={activating}
+                style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontWeight: '800',
+                  fontSize: '13px',
+                  cursor: activating ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <ShieldCheck size={16} />
+                {activating ? 'Validating...' : 'Activate License'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

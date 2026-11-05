@@ -6,6 +6,18 @@ const AuthContext = createContext();
 // Default pre-seeded accounts for all roles
 const DEFAULT_USERS = [
   {
+    id: 'user_owner_nipun',
+    name: 'Nipun Anjana (Institute Owner & Super Admin)',
+    email: 'nipunanjana10@gmail.com',
+    password: ['admin123', 'admin', 'password123', 'nipun123', 'Admin123', 'Password123'],
+    role: 'teacher',
+    isAdmin: true,
+    phone: '+94 77 123 4567',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+    subjects: 'Institute Administration & Management',
+    bio: 'Primary Institute Owner & Super Administrator'
+  },
+  {
     id: 'user_admin_001',
     name: 'Institute Owner / Admin (ප්‍රධාන පරිපාලක)',
     email: 'admin@tuition.lk',
@@ -327,11 +339,32 @@ export const AuthProvider = ({ children }) => {
 
   // Add custom user (Used by Admin / Teacher to create accounts)
   const addCustomUser = async (userData) => {
-    const isCallerAdmin = user?.isAdmin === true || user?.role === 'admin' || user?.email === 'admin@tuition.lk';
+    const isCallerAdmin = user?.isAdmin === true || user?.role === 'admin' || user?.email === 'admin@tuition.lk' || user?.email === 'nipunanjana10@gmail.com';
 
     // Security check: Only Admin can create Teacher accounts
     if (!isCallerAdmin && userData.role === 'teacher') {
       throw new Error('Only the Admin account can create new Teacher accounts.');
+    }
+
+    // Commercial Tier Limits Check (Standard: 10 teachers, 500 students, 500 parents)
+    const storedSettings = localStorage.getItem('edutuition_settings');
+    const settings = storedSettings ? JSON.parse(storedSettings) : {};
+    const isPremium = settings.plan === 'premium' || settings.isPremium === true;
+    const assignedRole = userData.role || (isCallerAdmin ? 'teacher' : 'student');
+
+    if (assignedRole === 'teacher') {
+      const maxTeachers = isPremium ? 1000 : (settings.maxTeachers || 10);
+      const customTeachers = getCustomUsers().filter(u => u.role === 'teacher' && !u.isAdmin).length;
+      if (customTeachers >= maxTeachers) {
+        throw new Error(`Standard Plan limit reached (Maximum ${maxTeachers} Teachers). Upgrade to Premium Enterprise Plan for unlimited teacher accounts.`);
+      }
+    } else if (assignedRole === 'student') {
+      const maxStudents = isPremium ? 10000 : (settings.maxStudents || 500);
+      const storedStudents = localStorage.getItem('edutuition_students');
+      const studentsList = storedStudents ? JSON.parse(storedStudents) : [];
+      if (studentsList.length >= maxStudents) {
+        throw new Error(`Standard Plan limit reached (Maximum ${maxStudents} Students). Upgrade to Premium Enterprise Plan for unlimited student registrations.`);
+      }
     }
 
     let createdUser = null;
@@ -341,12 +374,14 @@ export const AuthProvider = ({ children }) => {
         createdUser = res.data.data;
       }
     } catch (e) {
+      if (e.response?.data?.message) {
+        throw new Error(e.response.data.message);
+      }
       console.warn('Backend user creation error:', e);
     }
 
     const cleanEmail = userData.email ? userData.email.toLowerCase().trim() : '';
     const cleanName = userData.name ? userData.name.trim() : '';
-    const assignedRole = userData.role || (isCallerAdmin ? 'teacher' : 'student');
     const classesToEnroll = Array.isArray(userData.enrolledClasses)
       ? userData.enrolledClasses
       : (userData.classId ? [userData.classId] : []);
@@ -468,7 +503,7 @@ export const AuthProvider = ({ children }) => {
         user,
         token,
         role: user?.role || null,
-        isAdmin: user?.isAdmin === true || user?.role === 'admin' || user?.email === 'admin@tuition.lk',
+        isAdmin: user?.isAdmin === true || user?.role === 'admin' || user?.email === 'admin@tuition.lk' || user?.email === 'nipunanjana10@gmail.com',
         loading,
         login,
         quickLogin,

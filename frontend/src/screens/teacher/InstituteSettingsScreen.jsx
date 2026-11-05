@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { api } from '../../api/client';
+import confetti from 'canvas-confetti';
 import {
   Building,
   Phone,
@@ -15,7 +16,16 @@ import {
   FileText,
   DollarSign,
   UserCheck,
-  Smartphone
+  Smartphone,
+  Crown,
+  Key,
+  Database,
+  UploadCloud,
+  RefreshCw,
+  Users,
+  GraduationCap,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import DataSyncModal from '../../components/modals/DataSyncModal';
 
@@ -41,6 +51,28 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Commercial Licensing & Tier State
+  const [planInfo, setPlanInfo] = useState({
+    plan: 'standard',
+    isPremium: false,
+    maxTeachers: 10,
+    maxStudents: 500,
+    maxParents: 500
+  });
+  const [counts, setCounts] = useState({
+    teachers: 0,
+    students: 0,
+    parents: 0
+  });
+  const [licenseInput, setLicenseInput] = useState('');
+  const [activatingLicense, setActivatingLicense] = useState(false);
+  const [licenseMessage, setLicenseMessage] = useState(null);
+
+  // Emergency Recovery State
+  const [cachedStudents, setCachedStudents] = useState([]);
+  const [restoringStudents, setRestoringStudents] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState(null);
+
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -54,7 +86,43 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
           ...prev,
           ...res.data.data
         }));
+
+        setPlanInfo({
+          plan: res.data.data.plan || 'standard',
+          isPremium: res.data.data.plan === 'premium' || res.data.data.isPremium === true,
+          maxTeachers: res.data.data.maxTeachers || 10,
+          maxStudents: res.data.data.maxStudents || 500,
+          maxParents: res.data.data.maxParents || 500
+        });
       }
+
+      // Fetch user & student counts
+      try {
+        const usersRes = await api.getUsers().catch(() => null);
+        const allUsers = usersRes?.data?.data || [];
+        const teacherCount = allUsers.filter(u => u.role === 'teacher' || u.role === 'admin').length;
+        const parentCount = allUsers.filter(u => u.role === 'parent').length;
+
+        const studentsRes = await api.getStudents().catch(() => null);
+        const allStudents = studentsRes?.data?.data || [];
+
+        setCounts({
+          teachers: teacherCount,
+          students: allStudents.length,
+          parents: parentCount
+        });
+      } catch {}
+
+      // Scan localStorage for any cached students
+      try {
+        const rawLocal = localStorage.getItem('edutuition_students');
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCachedStudents(parsed);
+          }
+        }
+      } catch {}
     } catch (err) {
       console.error('Error fetching settings:', err);
     } finally {
@@ -64,6 +132,70 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleActivateLicense = async (e) => {
+    e.preventDefault();
+    if (!licenseInput.trim()) {
+      setLicenseMessage({ type: 'error', text: 'Please enter a valid License Key' });
+      return;
+    }
+    setActivatingLicense(true);
+    setLicenseMessage(null);
+    try {
+      const res = await api.activateLicense(licenseInput.trim());
+      if (res?.data?.success) {
+        setPlanInfo(prev => ({
+          ...prev,
+          plan: 'premium',
+          isPremium: true,
+          maxTeachers: 1000,
+          maxStudents: 10000,
+          maxParents: 10000
+        }));
+        setFormData(prev => ({
+          ...prev,
+          enableAiAssistant: true
+        }));
+        setLicenseMessage({
+          type: 'success',
+          text: '🎉 Premium Enterprise License Activated! Quotas expanded & AI Assistant unlocked.'
+        });
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        setLicenseInput('');
+      }
+    } catch (err) {
+      setLicenseMessage({ type: 'error', text: err.message || 'Invalid License Key' });
+    } finally {
+      setActivatingLicense(false);
+    }
+  };
+
+  const handleRecoverStudents = async () => {
+    if (!cachedStudents || cachedStudents.length === 0) return;
+    setRestoringStudents(true);
+    setRecoveryMessage(null);
+    try {
+      let restored = 0;
+      for (const st of cachedStudents) {
+        try {
+          await api.createStudent(st);
+          restored++;
+        } catch {}
+      }
+      setRecoveryMessage({
+        type: 'success',
+        text: `✓ Successfully synchronized ${restored} students from local browser storage to system!`
+      });
+      fetchSettings();
+    } catch (err) {
+      setRecoveryMessage({
+        type: 'error',
+        text: 'Error recovering students: ' + err.message
+      });
+    } finally {
+      setRestoringStudents(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -131,6 +263,182 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
             Customize your tuition class name, contact details & receipts
           </div>
         </div>
+      </div>
+
+      {/* Plan & Commercial Licensing Card */}
+      <div
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: '18px',
+          padding: '20px',
+          border: planInfo.isPremium ? '2px solid rgba(245, 158, 11, 0.4)' : `1px solid ${colors.border}`,
+          boxShadow: colors.cardShadow,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: planInfo.isPremium ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Crown size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '15px', fontWeight: '800', color: colors.text }}>
+                  Commercial Plan & Quotas
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    padding: '2px 8px',
+                    borderRadius: '8px',
+                    backgroundColor: planInfo.isPremium ? 'rgba(245, 158, 11, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                    color: planInfo.isPremium ? '#F59E0B' : '#6366F1'
+                  }}
+                >
+                  {planInfo.isPremium ? '👑 PREMIUM ENTERPRISE' : 'STANDARD PLAN'}
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: colors.textMuted, marginTop: '2px' }}>
+                {planInfo.isPremium ? 'Unlimited accounts, full AI Assistant suite active' : 'Default allocation: 10 Teachers, 500 Students, 500 Parents'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quota Progress Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          {/* Teachers Quota */}
+          <div style={{ backgroundColor: colors.surfaceSubtle, padding: '12px 14px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: colors.textMuted, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Users size={14} /> Teachers
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: '800', color: colors.text }}>
+                {counts.teachers} / {planInfo.isPremium ? '∞' : planInfo.maxTeachers}
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '6px', borderRadius: '3px', backgroundColor: colors.border, overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: planInfo.isPremium ? '20%' : `${Math.min(100, (counts.teachers / planInfo.maxTeachers) * 100)}%`,
+                  backgroundColor: counts.teachers >= planInfo.maxTeachers && !planInfo.isPremium ? '#EF4444' : '#6366F1',
+                  borderRadius: '3px'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Students Quota */}
+          <div style={{ backgroundColor: colors.surfaceSubtle, padding: '12px 14px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: colors.textMuted, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <GraduationCap size={14} /> Students
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: '800', color: colors.text }}>
+                {counts.students} / {planInfo.isPremium ? '∞' : planInfo.maxStudents}
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '6px', borderRadius: '3px', backgroundColor: colors.border, overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: planInfo.isPremium ? '15%' : `${Math.min(100, (counts.students / planInfo.maxStudents) * 100)}%`,
+                  backgroundColor: counts.students >= planInfo.maxStudents && !planInfo.isPremium ? '#EF4444' : '#10B981',
+                  borderRadius: '3px'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Parents Quota */}
+          <div style={{ backgroundColor: colors.surfaceSubtle, padding: '12px 14px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: colors.textMuted, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <UserCheck size={14} /> Parents
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: '800', color: colors.text }}>
+                {counts.parents} / {planInfo.isPremium ? '∞' : planInfo.maxParents}
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '6px', borderRadius: '3px', backgroundColor: colors.border, overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: planInfo.isPremium ? '10%' : `${Math.min(100, (counts.parents / planInfo.maxParents) * 100)}%`,
+                  backgroundColor: counts.parents >= planInfo.maxParents && !planInfo.isPremium ? '#EF4444' : '#06B6D4',
+                  borderRadius: '3px'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* License Key Activation Form */}
+        <form onSubmit={handleActivateLicense} style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '8px', borderTop: `1px dashed ${colors.border}` }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+              <Key size={16} color={colors.textMuted} style={{ position: 'absolute', left: '12px', top: '12px' }} />
+              <input
+                type="text"
+                value={licenseInput}
+                onChange={(e) => setLicenseInput(e.target.value.toUpperCase())}
+                placeholder="Enter License Key (e.g. PREMIUM-2026)"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 36px',
+                  borderRadius: '10px',
+                  backgroundColor: colors.surfaceSubtle,
+                  border: `1px solid ${colors.border}`,
+                  color: colors.text,
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  letterSpacing: '0.5px'
+                }}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={activatingLicense}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                fontWeight: '700',
+                fontSize: '12px',
+                cursor: activatingLicense ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Zap size={14} />
+              <span>{activatingLicense ? 'Activating...' : 'Activate License'}</span>
+            </button>
+          </div>
+
+          {licenseMessage && (
+            <div style={{ fontSize: '12px', fontWeight: '600', color: licenseMessage.type === 'success' ? '#10B981' : '#EF4444' }}>
+              {licenseMessage.text}
+            </div>
+          )}
+        </form>
       </div>
 
       {message && (
@@ -425,6 +733,68 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
           <span>{saving ? 'Saving Changes...' : 'Save Institute Settings (සුරකින්න)'}</span>
         </button>
       </form>
+
+      {/* Emergency Data Recovery (33 Students Scanner) */}
+      <div
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: '16px',
+          padding: '18px',
+          border: `1px solid ${cachedStudents.length > 0 ? 'rgba(16, 185, 129, 0.4)' : colors.border}`,
+          boxShadow: colors.cardShadow,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Database size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '800', color: colors.text }}>
+                Emergency Data Recovery & Browser Cache Scanner
+              </div>
+              <div style={{ fontSize: '11px', color: colors.textMuted }}>
+                {cachedStudents.length > 0
+                  ? `Found ${cachedStudents.length} student records cached in this browser!`
+                  : 'Scans your browser storage for your previously added students'}
+              </div>
+            </div>
+          </div>
+
+          {cachedStudents.length > 0 && (
+            <button
+              type="button"
+              onClick={handleRecoverStudents}
+              disabled={restoringStudents}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '10px',
+                backgroundColor: '#10B981',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: restoringStudents ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <RefreshCw size={14} className={restoringStudents ? 'spin' : ''} />
+              <span>{restoringStudents ? 'Syncing...' : `Restore & Save ${cachedStudents.length} Students to System`}</span>
+            </button>
+          )}
+        </div>
+
+        {recoveryMessage && (
+          <div style={{ fontSize: '12px', fontWeight: '600', color: recoveryMessage.type === 'success' ? '#10B981' : '#EF4444' }}>
+            {recoveryMessage.text}
+          </div>
+        )}
+      </div>
 
       {/* Device Sync & Cloud Section */}
       <div

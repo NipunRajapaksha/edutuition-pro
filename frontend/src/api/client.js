@@ -139,6 +139,35 @@ export const api = {
     setLocal('edutuition_settings', data);
     return { data: { success: true, data } };
   },
+  activateLicense: async (licenseKey) => {
+    try {
+      const res = await client.post('/settings/activate-license', { licenseKey });
+      if (res?.data?.success && res.data.data) {
+        setLocal('edutuition_settings', res.data.data);
+        return res;
+      }
+    } catch (e) {
+      if (e.response?.data?.message) throw new Error(e.response.data.message);
+    }
+    const cleanKey = (licenseKey || '').trim().toUpperCase();
+    const validKeys = ['PREMIUM-2026', 'EDU-PREMIUM-AI', 'PRO-ENTERPRISE-KEY', 'NIPUN-VIP-2026', 'PREMIUM'];
+    if (!cleanKey || (!validKeys.includes(cleanKey) && !cleanKey.startsWith('PRO-'))) {
+      throw new Error('Invalid License Key. Please enter a valid Premium Enterprise License code (e.g. PREMIUM-2026).');
+    }
+    const current = getLocal('edutuition_settings', {});
+    const updated = {
+      ...current,
+      plan: 'premium',
+      isPremium: true,
+      enableAiAssistant: true,
+      licenseKey: cleanKey,
+      maxTeachers: 1000,
+      maxStudents: 10000,
+      maxParents: 10000
+    };
+    setLocal('edutuition_settings', updated);
+    return { data: { success: true, message: '🎉 Premium Enterprise License Activated Successfully!', data: updated } };
+  },
 
   // Dashboard
   getDashboardStats: async () => {
@@ -351,11 +380,22 @@ export const api = {
     };
   },
   createStudent: async (data) => {
+    // Commercial Tier Limits Check (500 students on Standard Plan)
+    const settings = getLocal('edutuition_settings', {});
+    const isPremium = settings.plan === 'premium' || settings.isPremium === true;
+    const maxStudents = isPremium ? 10000 : (settings.maxStudents || 500);
+    const existingStudents = getLocal('edutuition_students', []);
+    if (existingStudents.length >= maxStudents) {
+      throw new Error(`Standard Plan limit reached (Maximum ${maxStudents} Students). Please upgrade to Premium Enterprise Plan for unlimited student registrations.`);
+    }
+
     let created = null;
     try {
       const res = await client.post('/students', data);
       if (res?.data?.success && res.data.data) created = res.data.data;
-    } catch {}
+    } catch (e) {
+      if (e.response?.data?.message) throw new Error(e.response.data.message);
+    }
     if (!created) {
       const studentId = `STU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
       created = {

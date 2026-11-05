@@ -13,25 +13,30 @@ const authenticateToken = (req, res, next) => {
 
   // Handle local fallback token used during cold start / client resilience
   if (token.startsWith('local_token_')) {
-    const adminUser = storage.users.findOne({ email: 'admin@tuition.lk' }) || storage.users.find()[0];
+    const adminUser = storage.users.findOne({ email: 'nipunanjana10@gmail.com' }) ||
+      storage.users.findOne({ email: 'admin@tuition.lk' }) ||
+      storage.users.find()[0];
     req.user = {
-      id: adminUser ? adminUser._id : 'admin-user-001',
-      email: adminUser ? adminUser.email : 'admin@tuition.lk',
-      role: adminUser ? adminUser.role : 'teacher',
-      name: adminUser ? adminUser.name : 'Institute Admin'
+      id: adminUser ? adminUser._id : 'user_owner_nipun',
+      email: adminUser ? adminUser.email : 'nipunanjana10@gmail.com',
+      role: 'teacher',
+      isAdmin: true,
+      name: adminUser ? adminUser.name : 'Nipun Anjana (Institute Owner)'
     };
     return next();
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      // Fallback: If verification fails, check if admin user exists in storage
-      const adminUser = storage.users.findOne({ email: 'admin@tuition.lk' });
+      // Fallback: If verification fails, check if master admin user exists in storage
+      const adminUser = storage.users.findOne({ email: 'nipunanjana10@gmail.com' }) ||
+        storage.users.findOne({ email: 'admin@tuition.lk' });
       if (adminUser) {
         req.user = {
           id: adminUser._id,
           email: adminUser.email,
-          role: adminUser.role,
+          role: adminUser.role || 'teacher',
+          isAdmin: true,
           name: adminUser.name
         };
         return next();
@@ -49,9 +54,11 @@ const requireRole = (allowedRoles) => {
       return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 
-    // Admin accounts or admin@tuition.lk have full access to all teacher & management routes
+    // Master Owner / Admin accounts have full access to all management routes
     if (
       req.user.role === 'admin' ||
+      req.user.isAdmin === true ||
+      req.user.email === 'nipunanjana10@gmail.com' ||
       req.user.email === 'admin@tuition.lk' ||
       (allowedRoles.includes('teacher') && (req.user.role === 'teacher' || req.user.role === 'admin'))
     ) {
