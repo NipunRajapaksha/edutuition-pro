@@ -57,7 +57,8 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
     isPremium: false,
     maxTeachers: 10,
     maxStudents: 500,
-    maxParents: 500
+    maxParents: 500,
+    isCloudConnected: false
   });
   const [counts, setCounts] = useState({
     teachers: 0,
@@ -92,7 +93,8 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
           isPremium: res.data.data.plan === 'premium' || res.data.data.isPremium === true,
           maxTeachers: res.data.data.maxTeachers || 10,
           maxStudents: res.data.data.maxStudents || 500,
-          maxParents: res.data.data.maxParents || 500
+          maxParents: res.data.data.maxParents || 500,
+          isCloudConnected: res.data.data.isCloudConnected || false
         });
       }
 
@@ -314,6 +316,35 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
               </div>
               <div style={{ fontSize: '12px', color: colors.textMuted, marginTop: '2px' }}>
                 {planInfo.isPremium ? 'Unlimited accounts, full AI Assistant suite active' : 'Default allocation: 10 Teachers, 500 Students, 500 Parents'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Database Persistence Status Badge */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            padding: '10px 14px',
+            borderRadius: '12px',
+            backgroundColor: planInfo.isCloudConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+            border: `1px solid ${planInfo.isCloudConnected ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: planInfo.isCloudConnected ? '#10B981' : '#F59E0B' }} />
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: '800', color: planInfo.isCloudConnected ? '#10B981' : '#D97706' }}>
+                {planInfo.isCloudConnected ? 'Cloud Database Connected (100% Data Loss Proof)' : 'Embedded Storage Active'}
+              </div>
+              <div style={{ fontSize: '11px', color: colors.textMuted }}>
+                {planInfo.isCloudConnected
+                  ? 'All students, attendance and fee records are permanently backed up to the cloud.'
+                  : 'For 100% permanent cloud persistence across servers and redeployments, connect a free MongoDB Atlas URI.'}
               </div>
             </div>
           </div>

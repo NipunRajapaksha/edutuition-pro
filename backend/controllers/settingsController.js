@@ -1,4 +1,5 @@
 const storage = require('../services/storage');
+const { getIsConnected } = require('../config/db');
 
 // Get current institute settings
 const getSettings = async (req, res, next) => {
@@ -6,7 +7,10 @@ const getSettings = async (req, res, next) => {
     const settings = storage.getSettings();
     res.json({
       success: true,
-      data: settings
+      data: {
+        ...settings,
+        isCloudConnected: getIsConnected()
+      }
     });
   } catch (err) {
     next(err);
