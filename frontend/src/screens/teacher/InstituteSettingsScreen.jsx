@@ -78,6 +78,7 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
   const [dbStatus, setDbStatus] = useState(null);
   const [reconnectingDb, setReconnectingDb] = useState(false);
   const [dbReconnectMsg, setDbReconnectMsg] = useState(null);
+  const [mongoUriInput, setMongoUriInput] = useState('');
 
   useEffect(() => {
     fetchSettings();
@@ -145,11 +146,12 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleReconnectDb = async () => {
+  const handleReconnectDb = async (overrideUri) => {
     setReconnectingDb(true);
     setDbReconnectMsg(null);
+    const targetUri = overrideUri || mongoUriInput.trim() || undefined;
     try {
-      const res = await api.reconnectDb();
+      const res = await api.reconnectDb(targetUri);
       if (res.data?.success) {
         setPlanInfo(prev => ({ ...prev, isCloudConnected: true }));
         setDbStatus(res.data.data?.dbStatus || null);
@@ -407,21 +409,57 @@ const InstituteSettingsScreen = ({ onSettingsUpdated }) => {
           </div>
 
           {!planInfo.isCloudConnected && (
-            <div style={{ fontSize: '11px', color: colors.textMuted, borderTop: `1px dashed ${colors.border}`, paddingTop: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: `1px dashed ${colors.border}`, paddingTop: '8px' }}>
               {dbStatus?.lastError && (
-                <div style={{ color: '#EF4444', fontWeight: '600', marginBottom: '4px' }}>
+                <div style={{ color: '#EF4444', fontWeight: '600', fontSize: '11px' }}>
                   Reason: {dbStatus.lastError}
                 </div>
               )}
-              {dbStatus?.hasMongoUri ? (
-                <div>
-                  <strong>Common Fix:</strong> In MongoDB Atlas, go to <strong>Network Access</strong> &rarr; click <strong>Add IP Address</strong> &rarr; select <strong>Allow Access from Anywhere (0.0.0.0/0)</strong>. Also check that your database username &amp; password in MONGODB_URI are correct.
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: colors.text, display: 'block', marginBottom: '4px' }}>
+                  Or Connect Directly (Paste MongoDB Atlas URI below):
+                </label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="text"
+                    value={mongoUriInput}
+                    onChange={(e) => setMongoUriInput(e.target.value)}
+                    placeholder="mongodb+srv://user:pass@cluster0.../edutuition"
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: `1px solid ${colors.border}`,
+                      backgroundColor: colors.surfaceSubtle,
+                      color: colors.text,
+                      fontSize: '11px'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleReconnectDb()}
+                    disabled={reconnectingDb || !mongoUriInput.trim()}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      backgroundColor: '#10B981',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: reconnectingDb || !mongoUriInput.trim() ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {reconnectingDb ? 'Connecting...' : 'Connect Cloud DB'}
+                  </button>
                 </div>
-              ) : (
-                <div>
-                  <strong>To activate:</strong> In Vercel &rarr; <strong>Deployments</strong> &rarr; click <strong>...</strong> next to the latest deployment &rarr; click <strong>Redeploy</strong> to apply the newly added MONGODB_URI.
-                </div>
-              )}
+              </div>
+
+              <div style={{ fontSize: '10.5px', color: colors.textMuted, lineHeight: '1.4' }}>
+                💡 <strong>Important:</strong> In MongoDB Atlas &rarr; <strong>Network Access</strong> &rarr; Add IP <strong>0.0.0.0/0</strong> (Allow access from anywhere). And in Vercel &rarr; <strong>Deployments</strong> &rarr; click <strong>...</strong> on the latest deployment &rarr; <strong>Redeploy</strong>.
+              </div>
             </div>
           )}
 

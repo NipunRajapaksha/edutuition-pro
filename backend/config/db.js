@@ -13,15 +13,28 @@ const maskUri = (uri) => {
   }
 };
 
-const connectDB = async () => {
+const connectDB = async (customUri) => {
   connectionAttempted = true;
-  if (mongoose.connection.readyState === 1) {
+  if (mongoose.connection.readyState === 1 && !customUri) {
     isConnected = true;
     lastError = null;
     return true;
   }
 
-  const rawUri = process.env.MONGODB_URI;
+  let rawUri = customUri;
+  if (!rawUri || !rawUri.trim()) {
+    try {
+      const storage = require('../services/storage');
+      const settings = storage.getSettings();
+      if (settings && settings.mongodbUri) {
+        rawUri = settings.mongodbUri;
+      }
+    } catch {}
+  }
+  if (!rawUri || !rawUri.trim()) {
+    rawUri = process.env.MONGODB_URI;
+  }
+
   if (!rawUri || !rawUri.trim()) {
     isConnected = false;
     lastError = 'MONGODB_URI environment variable not found in current deployment.';
@@ -31,6 +44,9 @@ const connectDB = async () => {
   const mongoUri = rawUri.trim();
 
   try {
+    if (mongoose.connection.readyState !== 0 && customUri) {
+      await mongoose.disconnect();
+    }
     const conn = await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 8000,
       connectTimeoutMS: 8000
@@ -53,7 +69,14 @@ const getIsConnected = () => {
 
 const getDbStatus = () => {
   const ready = mongoose.connection.readyState === 1;
-  const rawUri = process.env.MONGODB_URI;
+  let rawUri = process.env.MONGODB_URI;
+  if (!rawUri) {
+    try {
+      const storage = require('../services/storage');
+      const settings = storage.getSettings();
+      if (settings && settings.mongodbUri) rawUri = settings.mongodbUri;
+    } catch {}
+  }
   return {
     isConnected: ready || isConnected,
     hasMongoUri: !!(rawUri && rawUri.trim()),

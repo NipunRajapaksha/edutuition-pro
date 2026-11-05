@@ -30,7 +30,11 @@ const getSettings = async (req, res, next) => {
 // Reconnect/Test database connection
 const reconnectDb = async (req, res, next) => {
   try {
-    const connected = await connectDB();
+    const { mongodbUri } = req.body || {};
+    if (mongodbUri && typeof mongodbUri === 'string' && mongodbUri.trim()) {
+      storage.updateSettings({ mongodbUri: mongodbUri.trim() });
+    }
+    const connected = await connectDB(mongodbUri);
     if (connected && storage.syncFromCloud) {
       await storage.syncFromCloud();
     }
